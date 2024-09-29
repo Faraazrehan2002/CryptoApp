@@ -35,16 +35,6 @@
 			path = CryptoApp;
 			sourceTree = "<group>";
 		};
-		E898ABA42CA9B80300AA6484 /* CryptoAppTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CryptoAppTests;
-			sourceTree = "<group>";
-		};
-		E898ABAE2CA9B80300AA6484 /* CryptoAppUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CryptoAppUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +66,6 @@
 			isa = PBXGroup;
 			children = (
 				E898AB932CA9B80200AA6484 /* CryptoApp */,
-				E898ABA42CA9B80300AA6484 /* CryptoAppTests */,
-				E898ABAE2CA9B80300AA6484 /* CryptoAppUITests */,
 				E898AB922CA9B80200AA6484 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,9 +118,6 @@
 			dependencies = (
 				E898ABA32CA9B80300AA6484 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				E898ABA42CA9B80300AA6484 /* CryptoAppTests */,
-			);
 			name = CryptoAppTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +137,6 @@
 			);
 			dependencies = (
 				E898ABAD2CA9B80300AA6484 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				E898ABAE2CA9B80300AA6484 /* CryptoAppUITests */,
 			);
 			name = CryptoAppUITests;
 			packageProductDependencies = (
