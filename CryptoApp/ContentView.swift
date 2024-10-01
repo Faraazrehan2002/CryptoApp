@@ -9,15 +9,14 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        TabView{
+            HomeView()
+            PortfolioView()
+            SettingsView()
+    }.tint(.white)        // Ensures unselected tab icons and text are also white
     }
 }
+
 
 #Preview {
     ContentView()
