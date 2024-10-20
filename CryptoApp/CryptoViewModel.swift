@@ -2,31 +2,31 @@ import SwiftUI
 import Combine
 
 class CryptoViewModel: ObservableObject {
-    @Published var coins: [Coin] = []
+    @Published var coins: [CoinGeckoCoin] = []
     @Published var marketCap: String = ""
     @Published var volume: String = ""
     @Published var dominance: String = ""
+    @Published var marketCapPercentageChange: String = "" // Add this for percentage change
+    @Published var dominancePercentageChange: String = ""
     
     private var cancellable: AnyCancellable?
     
     private let apiURL = "https://api.coingecko.com/api/v3"
     
-    // Load the API key from Secrets.plist
-        var apiKey: String {
-            guard let filePath = Bundle.main.path(forResource: "secrets", ofType: "plist"),
-                  let plist = NSDictionary(contentsOfFile: filePath),
-                  let key = plist["API_KEY"] as? String else {
-                fatalError("API Key not found in Secrets.plist")
-            }
-            return key
+    var apiKey: String {
+        guard let filePath = Bundle.main.path(forResource: "secrets", ofType: "plist"),
+              let plist = NSDictionary(contentsOfFile: filePath),
+              let key = plist["API_KEY"] as? String else {
+            fatalError("API Key not found in Secrets.plist")
         }
+        return key
+    }
     
     init() {
         fetchCryptoData()
     }
     
     func fetchCryptoData() {
-        // Construct the URL using URLComponents
         var components = URLComponents(string: "\(apiURL)/coins/markets")!
         components.queryItems = [
             URLQueryItem(name: "vs_currency", value: "usd"),
@@ -34,28 +34,23 @@ class CryptoViewModel: ObservableObject {
             URLQueryItem(name: "per_page", value: "10"),
             URLQueryItem(name: "page", value: "1"),
             URLQueryItem(name: "sparkline", value: "true"),
-            URLQueryItem(name: "x_cg_demo_api_key", value: apiKey) // Pass the API key as a query parameter
+            URLQueryItem(name: "x_cg_demo_api_key", value: apiKey)
         ]
         
-        // Ensure the URL is valid
         guard let url = components.url else {
             print("Invalid URL")
             return
         }
         
-        // Print the constructed URL for debugging
         print("Fetching data from URL: \(url)")
         
-        // Create a URLRequest
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.timeoutInterval = 10 // Optional: Add timeout interval for the request
-        request.allHTTPHeaderFields = ["accept": "application/json"] // Optional: Specify any additional headers
+        request.timeoutInterval = 10
+        request.allHTTPHeaderFields = ["accept": "application/json"]
         
-        // Perform the network request using Combine
         cancellable = URLSession.shared.dataTaskPublisher(for: request)
             .tryMap { data, response -> Data in
-                // Ensure the response is an HTTP response and check for successful status code
                 if let httpResponse = response as? HTTPURLResponse {
                     print("HTTP Response Code: \(httpResponse.statusCode)")
                 }
@@ -77,10 +72,9 @@ class CryptoViewModel: ObservableObject {
             }, receiveValue: { [weak self] coins in
                 print("Received \(coins.count) coins.")
                 
-                // Map the API data to the local Coin model
-                self?.coins = coins.map { Coin(rank: $0.market_cap_rank, symbol: $0.symbol.uppercased(), imageName: $0.image, price: "$\($0.current_price)", change: "\($0.price_change_percentage_24h)%", sparkline: $0.sparkline_in_7d) }
+                self?.coins = coins // Assign directly
                 
-                // Update the summary statistics for market cap, volume, and dominance
+                // Update the summary statistics
                 self?.marketCap = "$\(String(format: "%.2f", coins.reduce(0) { $0 + $1.market_cap } / 1_000_000_000))Bn"
                 self?.volume = "$\(String(format: "%.2f", coins.reduce(0) { $0 + $1.total_volume } / 1_000_000_000))Bn"
                 self?.dominance = "\(String(format: "%.2f", (coins.first?.market_cap ?? 0) / coins.reduce(0) { $0 + $1.market_cap } * 100))%"
@@ -88,29 +82,59 @@ class CryptoViewModel: ObservableObject {
     }
 }
 
-struct CoinGeckoCoin: Decodable {
+
+struct CoinGeckoCoin: Decodable, Identifiable {
     let id: String
     let symbol: String
+    let name: String
+    let image: String
     let current_price: Double
     let market_cap: Double
+    let market_cap_rank: Double?
     let total_volume: Double
+    let high24h: Double?
+    let low24h: Double?
     let price_change_percentage_24h: Double
-    let market_cap_rank: Int
-    let image: String // Image URL
+    let price_change_24h: Double
+    let marketCapChange24h: Double
+    let marketCapChangePercentage24h: Double
+    let lastUpdated: String
     let sparkline_in_7d: Sparkline
+    let currentHoldings: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, symbol, name, image
+        case current_price = "current_price"
+        case market_cap = "market_cap"
+        case market_cap_rank = "market_cap_rank"
+        case total_volume = "total_volume"
+        case high24h = "high_24h"
+        case low24h = "low_24h"
+        case price_change_percentage_24h = "price_change_percentage_24h"
+        case price_change_24h = "price_change_24h"
+        case marketCapChange24h = "market_cap_change_24h"
+        case marketCapChangePercentage24h = "market_cap_change_percentage_24h"
+        case lastUpdated = "last_updated"
+        case sparkline_in_7d = "sparkline_in_7d"
+        case currentHoldings
+    }
+    
+    func updateHoldings(amount: Double) -> CoinGeckoCoin {
+        
+        return CoinGeckoCoin(id: id, symbol: symbol, name: name, image: image, current_price: current_price, market_cap: market_cap, market_cap_rank: market_cap_rank, total_volume: total_volume, high24h: high24h, low24h: low24h, price_change_percentage_24h: price_change_percentage_24h, price_change_24h: price_change_24h, marketCapChange24h: marketCapChange24h, marketCapChangePercentage24h: marketCapChangePercentage24h, lastUpdated: lastUpdated, sparkline_in_7d: sparkline_in_7d, currentHoldings: amount)
+        
+    }
+    var currentHoldingsValue: Double {
+        return (currentHoldings ?? 0) * current_price
+    }
+    var rank: Int {
+        return Int(market_cap_rank ?? 0)
+    }
     
     struct Sparkline: Decodable {
         let price: [Double]
     }
-}
 
-
-struct Coin: Identifiable {
-    let id = UUID()
-    let rank: Int
-    let symbol: String
-    let imageName: String
-    let price: String
-    let change: String
-    let sparkline: CoinGeckoCoin.Sparkline
+    
+    
 }
