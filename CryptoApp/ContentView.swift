@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     
-    @StateObject private var vm = HomeViewModel()
+    @StateObject private var vm = CryptoViewModel()
     
     var body: some View {
         TabView {

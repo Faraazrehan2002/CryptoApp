@@ -6,10 +6,9 @@ class CryptoViewModel: ObservableObject {
     @Published var marketCap: String = ""
     @Published var volume: String = ""
     @Published var dominance: String = ""
-    @Published var marketCapPercentageChange: String = "" // Add this for percentage change
-    @Published var dominancePercentageChange: String = ""
+    @Published var marketCapPercentageChange: String = ""
     
-    private var cancellable: AnyCancellable?
+    private var cancellables = Set<AnyCancellable>()
     
     private let apiURL = "https://api.coingecko.com/api/v3"
     
@@ -24,8 +23,10 @@ class CryptoViewModel: ObservableObject {
     
     init() {
         fetchCryptoData()
+        fetchGlobalData()  // Ensure this gets called to retrieve the market cap and dominance
     }
     
+    // Fetch coin data
     func fetchCryptoData() {
         var components = URLComponents(string: "\(apiURL)/coins/markets")!
         components.queryItems = [
@@ -42,19 +43,14 @@ class CryptoViewModel: ObservableObject {
             return
         }
         
-        print("Fetching data from URL: \(url)")
+        print("Fetching coin data from URL: \(url)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.timeoutInterval = 10
         request.allHTTPHeaderFields = ["accept": "application/json"]
         
-        cancellable = URLSession.shared.dataTaskPublisher(for: request)
+        URLSession.shared.dataTaskPublisher(for: request)
             .tryMap { data, response -> Data in
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("HTTP Response Code: \(httpResponse.statusCode)")
-                }
-                
                 guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
                     throw URLError(.badServerResponse)
                 }
@@ -65,20 +61,74 @@ class CryptoViewModel: ObservableObject {
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
-                    print("Successfully fetched data.")
+                    print("Successfully fetched coin data.")
                 case .failure(let error):
                     print("Error fetching data: \(error.localizedDescription)")
                 }
             }, receiveValue: { [weak self] coins in
-                print("Received \(coins.count) coins.")
-                
-                self?.coins = coins // Assign directly
-                
-                // Update the summary statistics
-                self?.marketCap = "$\(String(format: "%.2f", coins.reduce(0) { $0 + $1.market_cap } / 1_000_000_000))Bn"
-                self?.volume = "$\(String(format: "%.2f", coins.reduce(0) { $0 + $1.total_volume } / 1_000_000_000))Bn"
-                self?.dominance = "\(String(format: "%.2f", (coins.first?.market_cap ?? 0) / coins.reduce(0) { $0 + $1.market_cap } * 100))%"
+                self?.coins = coins
             })
+            .store(in: &cancellables)
+    }
+    
+    // Fetch global market data
+    func fetchGlobalData() {
+        guard let url = URL(string: "\(apiURL)/global") else {
+            print("Invalid URL for global data.")
+            return
+        }
+        
+        print("Fetching global data from URL: \(url)")
+        
+        URLSession.shared.dataTaskPublisher(for: url)
+            .tryMap { data, response -> Data in
+                guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                    throw URLError(.badServerResponse)
+                }
+                return data
+            }
+            .decode(type: GlobalData.self, decoder: JSONDecoder())
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    print("Successfully fetched global data.")
+                case .failure(let error):
+                    print("Error fetching global data: \(error.localizedDescription)")
+                }
+            }, receiveValue: { [weak self] globalData in
+                guard let marketData = globalData.data else {
+                    print("No data in global data response.")
+                    return
+                }
+                
+                print("Global data retrieved: \(marketData)")
+                
+                self?.marketCap = self?.formatLargeNumber(marketData.marketCap) ?? ""
+                self?.volume = self?.formatLargeNumber(marketData.volume) ?? ""
+                self?.dominance = marketData.btcDominance
+                self?.marketCapPercentageChange = String(format: "%.2f%%", marketData.marketCapChangePercentage24HUsd)
+                
+                print("Formatted Market Cap: \(self?.marketCap ?? "")")
+                print("Formatted Volume: \(self?.volume ?? "")")
+                print("Formatted BTC Dominance: \(self?.dominance ?? "")")
+            })
+            .store(in: &cancellables)
+    }
+    
+    // Format large numbers for display
+    func formatLargeNumber(_ numberString: String) -> String {
+        guard let number = Double(numberString) else { return numberString }
+        
+        if number >= 1_000_000_000_000 {
+            return String(format: "$%.2fTr", number / 1_000_000_000_000)
+        } else if number >= 1_000_000_000 {
+            return String(format: "$%.2fBn", number / 1_000_000_000)
+        } else if number >= 1_000_000 {
+            return String(format: "$%.2fM", number / 1_000_000)
+        } else {
+            return String(format: "$%.2f", number)
+        }
     }
 }
 
