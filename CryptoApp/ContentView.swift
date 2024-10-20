@@ -8,15 +8,19 @@
 import SwiftUI
 
 struct ContentView: View {
+    
+    @StateObject private var vm = HomeViewModel()
+    
     var body: some View {
-        TabView{
+        TabView {
             HomeView()
+                .environmentObject(vm) 
             PortfolioView()
             SettingsView()
-    }.tint(.white)        // Ensures unselected tab icons and text are also white
+        }
+        .tint(.white)
     }
 }
-
 
 #Preview {
     ContentView()
