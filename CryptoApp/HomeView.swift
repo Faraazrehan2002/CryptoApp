@@ -89,7 +89,30 @@ struct HomeView: View {
                         .shadow(color: .white.opacity(0.15), radius: 10, x: 0, y: 0))
                     .padding(.horizontal, 6)
 
-
+                    // Header Row
+                    HStack {
+                        Text("Coins")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        HStack {
+                            Text("Prices")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            // Refresh button
+                            Button(action: {
+                                viewModel.fetchCryptoData() // Refreshes the crypto data
+                            }) {
+                                Image(systemName: "arrow.clockwise")
+                                    .foregroundColor(.white)
+                                    .padding(.leading, 8)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .padding(.horizontal)
                     
                     // Coin List
                     ScrollView {
