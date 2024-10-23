@@ -1,20 +1,13 @@
-//
-//  EditPortfolioView.swift
-//  CryptoApp
-//
-//  Created by Andrew Guzman on 10/2/24.
-//
-
 import SwiftUI
 
 struct EditPortfolioView: View {
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var viewModel: CryptoViewModel // Pass the CryptoViewModel from PortfolioView
     @State private var selectedCoin: CoinGeckoCoin? = nil
-    @ObservedObject var viewModel = CryptoViewModel()
     @State private var quantityText: String = ""
     @State private var searchText = ""
     @State private var showDone: Bool = false
-    
+
     var filteredCoins: [CoinGeckoCoin] {
         if searchText.isEmpty {
             return viewModel.coins
@@ -52,10 +45,14 @@ struct EditPortfolioView: View {
                         }
                     }
                     .padding()
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
+                        if let selectedCoin = selectedCoin, let amount = Double(quantityText) {
+                            // Update the coin holdings in the portfolio
+                            viewModel.updatePortfolio(with: selectedCoin, amount: amount)
+                        }
                         presentationMode.wrappedValue.dismiss()
                     }) {
                         Text("Done")
@@ -64,20 +61,21 @@ struct EditPortfolioView: View {
                             .padding()
                     }
                     .opacity(
-                        (selectedCoin != nil && selectedCoin?.currentHoldings != Double(quantityText)) ? 1.0 : 0.0)
+                        (selectedCoin != nil && selectedCoin?.currentHoldings != Double(quantityText)) ? 1.0 : 0.0
+                    )
                 }
-                
+
                 Text("Edit Portfolio")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                
+
                 // Search Bar
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.black)
                         .padding(.leading, 10)
-                    
+
                     ZStack(alignment: .leading) {
                         if searchText.isEmpty {
                             Text("Search")
@@ -96,7 +94,7 @@ struct EditPortfolioView: View {
                     .fill(Color.white)
                     .shadow(color: .white.opacity(0.15), radius: 10, x: 0, y: 0))
                 .padding(.horizontal, -10)
-                
+
                 // ScrollView placed directly below the search bar with minimal spacing
                 ScrollView(.horizontal, showsIndicators: true) {
                     LazyHStack(spacing: 20) {
@@ -111,13 +109,13 @@ struct EditPortfolioView: View {
                                 } placeholder: {
                                     ProgressView()
                                 }
-                                
+
                                 Text(coin.symbol.uppercased())
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.5)
-                                
+
                                 Text(coin.name)
                                     .font(.caption)
                                     .lineLimit(1)
@@ -129,6 +127,7 @@ struct EditPortfolioView: View {
                             .onTapGesture {
                                 withAnimation(.easeIn) {
                                     selectedCoin = coin
+                                    quantityText = "\(coin.currentHoldings ?? 0)"
                                 }
                             }
                             .background(
@@ -144,7 +143,7 @@ struct EditPortfolioView: View {
                     }
                 }
                 .padding(.top, 8) // Slight padding to ensure scroll view is just under the search bar
-                
+
                 // If a coin is selected, show details
                 if let selectedCoin = selectedCoin {
                     VStack(spacing: 10) {
@@ -153,19 +152,19 @@ struct EditPortfolioView: View {
                                 .foregroundColor(.white)
                                 .font(.headline)
                                 .padding(.top)
-                            
+
                             Spacer()
                             Text(selectedCoin.current_price.asCurrencyWith6Decimals())
                                 .foregroundColor(.white)
                                 .font(.headline)
-                                .padding(.top)
+                                .padding()
                         }
                         .padding()
-                        
+
                         Divider()
                             .background(Color.white)
                             .padding()
-                        
+
                         HStack {
                             Text("Amount Holding:")
                                 .foregroundColor(.white)
@@ -181,11 +180,11 @@ struct EditPortfolioView: View {
                                 .font(.headline)
                         }
                         .padding()
-                        
+
                         Divider()
                             .background(Color.white)
                             .padding()
-                        
+
                         HStack {
                             Text("Current Value:")
                                 .foregroundColor(.white)
@@ -194,6 +193,7 @@ struct EditPortfolioView: View {
                             Text(getCurrentValue().asCurrencyWith2Decimals())
                                 .foregroundColor(.white)
                                 .font(.headline)
+                                .padding()
                         }
                         .padding()
                     }
@@ -203,18 +203,17 @@ struct EditPortfolioView: View {
         }
         .navigationBarBackButtonHidden(true)
     }
-    
+
     func getCurrentValue() -> Double {
         if let quantity = Double(quantityText) {
             return quantity * (selectedCoin?.current_price ?? 0)
         }
         return 0
     }
-    
-    
-    
 }
 
+
+
 #Preview {
-    EditPortfolioView()
+    EditPortfolioView(viewModel: CryptoViewModel())
 }

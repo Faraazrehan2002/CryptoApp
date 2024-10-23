@@ -15,7 +15,7 @@ struct ContentView: View {
         TabView {
             HomeView()
                 .environmentObject(vm) 
-            PortfolioView()
+            PortfolioView(viewModel: CryptoViewModel())
             SettingsView()
         }
         .tint(.white)

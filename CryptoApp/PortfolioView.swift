@@ -1,179 +1,169 @@
-//
-//  PortfolioView.swift
-//  CryptoApp
-//
-//  Created by Faraaz Rehan Junaidi Mohammed on 10/1/24.
-//
-
 import SwiftUI
 
 struct PortfolioView: View {
-    
-    @ObservedObject var viewModel = CryptoViewModel()
+    @ObservedObject var viewModel: CryptoViewModel
     
     @State private var searchText = ""
+    @State private var isCoinSortAscending = true
+    @State private var isPriceSortAscending = true
     
+    // Only show coins that the user has added (with holdings)
     var filteredCoins: [CoinGeckoCoin] {
-        if searchText.isEmpty {
-            return viewModel.coins
-        } else {
-            return viewModel.coins.filter { coin in
-                coin.name.localizedCaseInsensitiveContains(searchText) ||
-                coin.symbol.localizedCaseInsensitiveContains(searchText)
+        let addedCoins = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
+        
+        let coins = searchText.isEmpty ? addedCoins : addedCoins.filter { coin in
+            coin.name.localizedCaseInsensitiveContains(searchText) || coin.symbol.localizedCaseInsensitiveContains(searchText)
+        }
+        
+        // Sort coins by name or price based on user selection
+        let sortedCoins = coins.sorted { (coin1, coin2) -> Bool in
+            if isCoinSortAscending {
+                return coin1.symbol < coin2.symbol
+            } else {
+                return coin1.symbol > coin2.symbol
+            }
+        }.sorted { (coin1, coin2) -> Bool in
+            if isPriceSortAscending {
+                return coin1.current_price < coin2.current_price
+            } else {
+                return coin1.current_price > coin2.current_price
             }
         }
+        
+        return sortedCoins
     }
-    
     
     var body: some View {
         NavigationView {
             ZStack {
                 // Background Gradient
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(hex: "#851439"),
-                        Color(hex: "#151E52")
-                    ]),
+                    gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
                 
-                VStack{
-                    HStack{
-                        NavigationLink(destination: EditPortfolioView()) {
-                            Text("Edit")
+                VStack(spacing: 10) { // Reduce spacing here
+                    HStack {
+                        NavigationLink(destination: EditPortfolioView(viewModel: viewModel)) {  // Pass viewModel to EditPortfolioView
+                            Image(systemName: "pencil")
                                 .foregroundColor(.white)
                                 .font(.title)
-                                .fontWeight(.bold)
                         }
-                        .padding()
                         Spacer()
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
                     
-                    VStack(spacing: 20) {
-                        Text("Portfolio")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
+                    Text("Portfolio")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.top, -20)
+                    
+                    // Portfolio Stats View
+                    HStack(alignment: .top, spacing: 36) {
+                        PortfolioStatView(
+                            title: "Portfolio Value",
+                            value: viewModel.portfolioValue,
+                            percentageChange: "-2.84%" // Example data
+                        )
+                        PortfolioStatView(
+                            title: "24hr Volume",
+                            value: viewModel.volume,
+                            percentageChange: nil
+                        )
+                        PortfolioStatView(
+                            title: "Top Holding Dominance",
+                            value: viewModel.topHoldingDominance, // Show top holding dominance
+                            percentageChange: nil
+                        )
+                    }
+                    .padding(.horizontal, 24)
+                    .multilineTextAlignment(.center)
+                    
+                    // Search bar
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.black)
+                            .padding(.leading, 10)
                         
-                        // Stats View (Market Cap, 24hr Volume, Coin Dominance)
-                        HStack(alignment: .top, spacing: 36) {
-                            
-                            Text("")
-                            Text("")
-                            Text("")
-
-                            /*StatView(
-                                title: "Market Cap",
-                                value: viewModel.marketCap,
-                                percentageChange: viewModel.marketCapPercentageChange
-                            )
-                            StatView(
-                                title: "24hr Volume",
-                                value: viewModel.volume,
-                                percentageChange: nil
-                            )
-                            StatView(
-                                title: "Coin Dominance",
-                                value: viewModel.dominance,
-                                percentageChange: nil
-                            )
-                             */
-                        }
-                        .padding(.horizontal, 24) // Increased padding to center content better
-                        .multilineTextAlignment(.center)
-                        
-                        // Search bar
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.black)
-                                .padding(.leading, 10)
-                            
-                            ZStack(alignment: .leading) {
-                                if searchText.isEmpty {
-                                    Text("Search")
-                                        .foregroundColor(.black)
-                                        .padding(.leading, 5)
-                                }
-                                TextField("", text: $searchText)
-                                    .autocapitalization(.none)
-                                    .disableAutocorrection(true)
-                                    .foregroundColor(.black) // Text color
+                        ZStack(alignment: .leading) {
+                            if searchText.isEmpty {
+                                Text("Search")
+                                    .foregroundColor(.black)
                                     .padding(.leading, 5)
                             }
+                            TextField("", text: $searchText)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                                .foregroundColor(.black)
+                                .padding(.leading, 5)
                         }
-                        .frame(height: 50)
-                        .frame(maxWidth: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 25)
-                            .fill(Color(.systemGray5)) // Updated background to light grey color
-                            .shadow(color: .white.opacity(0.15), radius: 10, x: 0, y: 0))
-                        .padding(.horizontal, 6)
+                    }
+                    .frame(height: 50)
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 25).fill(Color(.systemGray5)))
+                    .padding(.horizontal, 6)
+                    
+                    // Header Row
+                    HStack {
+                        // Coin Sort Button
+                        Button(action: {
+                            isCoinSortAscending.toggle()
+                        }) {
+                            HStack {
+                                Text("Coins")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // Header Row
-                        HStack {
-                            Text("Coins")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            //Spacer()
-                            
-                            Text("Holdings")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
-                            
-                            
+                        Text("Holdings")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        
+                        // Price Sort Button
+                        Button(action: {
+                            isPriceSortAscending.toggle()
+                        }) {
                             HStack {
                                 Text("Prices")
                                     .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(.white)
-                                
-                                // Refresh button
-                                Button(action: {
-                                    viewModel.fetchCryptoData() // Refreshes the crypto data
-                                }) {
-                                    Image(systemName: "arrow.clockwise")
-                                        .foregroundColor(.white)
-                                        .padding(.leading, 8)
-                                }
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .foregroundColor(.white)
                             }
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Coin List
+                    ScrollView {
+                        ForEach(filteredCoins, id: \.id) { coin in
+                            CoinRowViewPortfolio(coin: coin)
                         }
                         .padding(.horizontal)
-                        
-                        // Coin List
-                        ScrollView {
-                            //VStack(alignment: .leading, spacing: 20) {
-                              //  ForEach(filteredCoins, id: \.id) { coin in
-                              //      NavigationLink(
-                               //         destination: CryptoDetailView(
-                                //            viewModel: CryptoDetailViewModel(coin: coin)
-                                //        )
-                                //    ) {
-                               //         CoinRowView(coin: coin)
-                               //     }
-                              //  }
-                            //}
-                            //.padding(.horizontal)
-                        }
-                        
-                        Spacer()
                     }
-                    //.padding(.top, 50)
+                    
+                    Spacer()
                 }
             }
-            
-            }
-        .tabItem{
+        }
+        .tabItem {
             Image(systemName: "briefcase")
             Text("Portfolio")
-        }// view ends
-        
+        }
     }
 }
 
+// The row for displaying each coin
 struct CoinRowViewPortfolio: View {
     var coin: CoinGeckoCoin
 
@@ -196,9 +186,18 @@ struct CoinRowViewPortfolio: View {
                 .foregroundColor(.white)
                 .font(.system(size: 16, weight: .bold)) // Bold font for coin names
 
-            //Spacer()
+            Spacer()
+
+            VStack(alignment: .trailing) {
+                Text("$\(coin.currentHoldingsValue, specifier: "%.2f")")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                Text("\(coin.currentHoldings ?? 0, specifier: "%.2f")")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
             
-                
+            Spacer()
 
             VStack(alignment: .trailing) {
                 Text("$\(coin.current_price, specifier: "%.2f")")
@@ -213,7 +212,8 @@ struct CoinRowViewPortfolio: View {
     }
 }
 
-struct StatViewPortfolio: View {
+// A helper view to display portfolio stats (top holding dominance, portfolio value, etc.)
+struct PortfolioStatView: View {
     var title: String
     var value: String
     var percentageChange: String?
@@ -239,16 +239,7 @@ struct StatViewPortfolio: View {
     }
 }
 
-struct StatView_Previews_Portfolio: PreviewProvider {
-    static var previews: some View {
-        StatView(title: "Market Cap", value: "$1.24Tr", percentageChange: "-15.2%")
-            .background(Color.black)
-            .previewLayout(.sizeThatFits)
-    }
-}
-
-
+// A preview for the PortfolioView
 #Preview {
-    PortfolioView()
+    PortfolioView(viewModel: CryptoViewModel())
 }
-

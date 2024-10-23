@@ -2,15 +2,31 @@ import SwiftUI
 import Combine
 
 class CryptoViewModel: ObservableObject {
-    @Published var coins: [CoinGeckoCoin] = []
-    @Published var marketCap: String = ""
-    @Published var volume: String = ""
-    @Published var dominance: String = ""
-    @Published var marketCapPercentageChange: String = ""
+    @Published var coins: [CoinGeckoCoin] = []  // All available coins
+    @Published var marketCap: String = ""  // Market Cap
+    @Published var volume: String = ""  // 24h volume
+    @Published var dominance: String = ""  // Dominance of top coin in portfolio
+    @Published var marketCapPercentageChange: String = ""  // Market Cap % change
+    @Published var portfolioCoins: [CoinGeckoCoin] = []  // Portfolio coins with holdings
     
-    private var cancellables = Set<AnyCancellable>()
-    
+    private var cancellables = Set<AnyCancellable>()  // For Combine publishers
     private let apiURL = "https://api.coingecko.com/api/v3"
+    private let portfolioKey = "portfolioCoins"  // Key for storing portfolio data in UserDefaults
+    
+    // Portfolio value computed by summing up the current value of all holdings
+    var portfolioValue: String {
+        let totalValue = portfolioCoins.reduce(0) { $0 + $1.currentHoldingsValue }
+        return String(format: "$%.2f", totalValue)
+    }
+    
+    // Top holding dominance: Dominance of the coin with the largest value in the portfolio
+    var topHoldingDominance: String {
+        if let topHolding = portfolioCoins.max(by: { $0.currentHoldingsValue < $1.currentHoldingsValue }) {
+            let dominanceValue = (topHolding.currentHoldingsValue / Double(coins.reduce(0) { $0 + $1.market_cap })) * 100
+            return String(format: "%.2f%%", dominanceValue)
+        }
+        return "N/A"
+    }
     
     var apiKey: String {
         guard let filePath = Bundle.main.path(forResource: "secrets", ofType: "plist"),
@@ -23,10 +39,11 @@ class CryptoViewModel: ObservableObject {
     
     init() {
         fetchCryptoData()
-        fetchGlobalData()  // Ensure this gets called to retrieve the market cap and dominance
+        fetchGlobalData()
+        loadPortfolio()
     }
     
-    // Fetch coin data
+    // Fetch coin data from CoinGecko API
     func fetchCryptoData() {
         var components = URLComponents(string: "\(apiURL)/coins/markets")!
         components.queryItems = [
@@ -42,8 +59,6 @@ class CryptoViewModel: ObservableObject {
             print("Invalid URL")
             return
         }
-        
-        print("Fetching coin data from URL: \(url)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -67,18 +82,17 @@ class CryptoViewModel: ObservableObject {
                 }
             }, receiveValue: { [weak self] coins in
                 self?.coins = coins
+                self?.updatePortfolioAfterCoinFetch()
             })
             .store(in: &cancellables)
     }
     
-    // Fetch global market data
+    // Fetch global market data using the structure in `MarketDataModel`
     func fetchGlobalData() {
         guard let url = URL(string: "\(apiURL)/global") else {
             print("Invalid URL for global data.")
             return
         }
-        
-        print("Fetching global data from URL: \(url)")
         
         URLSession.shared.dataTaskPublisher(for: url)
             .tryMap { data, response -> Data in
@@ -87,7 +101,7 @@ class CryptoViewModel: ObservableObject {
                 }
                 return data
             }
-            .decode(type: GlobalData.self, decoder: JSONDecoder())
+            .decode(type: GlobalData.self, decoder: JSONDecoder())  // Decode the GlobalData model
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 switch completion {
@@ -96,27 +110,19 @@ class CryptoViewModel: ObservableObject {
                 case .failure(let error):
                     print("Error fetching global data: \(error.localizedDescription)")
                 }
-            }, receiveValue: { [weak self] globalData in
-                guard let marketData = globalData.data else {
-                    print("No data in global data response.")
-                    return
+            }, receiveValue: { [weak self] marketDataModel in
+                if let marketData = marketDataModel.data {  // Safely unwrap marketData
+                    self?.marketCap = self?.formatLargeNumber(marketData.marketCap) ?? ""
+                    self?.volume = self?.formatLargeNumber(marketData.volume) ?? ""
+                    self?.dominance = marketData.btcDominance
+                    self?.marketCapPercentageChange = String(format: "%.2f%%", marketData.marketCapChangePercentage24HUsd)
                 }
-                
-                print("Global data retrieved: \(marketData)")
-                
-                self?.marketCap = self?.formatLargeNumber(marketData.marketCap) ?? ""
-                self?.volume = self?.formatLargeNumber(marketData.volume) ?? ""
-                self?.dominance = marketData.btcDominance
-                self?.marketCapPercentageChange = String(format: "%.2f%%", marketData.marketCapChangePercentage24HUsd)
-                
-                print("Formatted Market Cap: \(self?.marketCap ?? "")")
-                print("Formatted Volume: \(self?.volume ?? "")")
-                print("Formatted BTC Dominance: \(self?.dominance ?? "")")
             })
             .store(in: &cancellables)
     }
+
     
-    // Format large numbers for display
+    // Format large numbers for display (e.g., $1.24Bn)
     func formatLargeNumber(_ numberString: String) -> String {
         guard let number = Double(numberString) else { return numberString }
         
@@ -130,9 +136,55 @@ class CryptoViewModel: ObservableObject {
             return String(format: "$%.2f", number)
         }
     }
+    
+    // Save portfolio to UserDefaults
+    func savePortfolio() {
+        let portfolioDict = portfolioCoins.reduce(into: [String: Double]()) { result, coin in
+            if let holdings = coin.currentHoldings {
+                result[coin.id] = holdings
+            }
+        }
+        UserDefaults.standard.set(portfolioDict, forKey: portfolioKey)
+    }
+
+    // Load portfolio from UserDefaults
+    func loadPortfolio() {
+        if let savedPortfolio = UserDefaults.standard.dictionary(forKey: portfolioKey) as? [String: Double] {
+            portfolioCoins = savedPortfolio.compactMap { (id, holdings) in
+                if let coin = coins.first(where: { $0.id == id }) {
+                    return coin.updateHoldings(amount: holdings)
+                }
+                return nil
+            }
+        }
+    }
+    
+    // Update portfolio after fetching coin data to match saved portfolio holdings
+    private func updatePortfolioAfterCoinFetch() {
+        if let savedPortfolio = UserDefaults.standard.dictionary(forKey: portfolioKey) as? [String: Double] {
+            portfolioCoins = coins.compactMap { coin in
+                if let holdings = savedPortfolio[coin.id] {
+                    return coin.updateHoldings(amount: holdings)
+                }
+                return nil
+            }
+        }
+    }
+    
+    // Update the portfolio with new holdings
+    func updatePortfolio(with coin: CoinGeckoCoin, amount: Double) {
+        if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
+            portfolioCoins[index] = coin.updateHoldings(amount: amount)  // Update existing coin
+        } else {
+            let updatedCoin = coin.updateHoldings(amount: amount)
+            portfolioCoins.append(updatedCoin)  // Add new coin to portfolio
+        }
+        savePortfolio()  // Save the updated portfolio to UserDefaults
+    }
 }
 
 
+// CoinGeckoCoin struct including holdings
 struct CoinGeckoCoin: Decodable, Identifiable {
     let id: String
     let symbol: String
@@ -150,7 +202,7 @@ struct CoinGeckoCoin: Decodable, Identifiable {
     let marketCapChangePercentage24h: Double
     let lastUpdated: String
     let sparkline_in_7d: Sparkline
-    let currentHoldings: Double?
+    let currentHoldings: Double?  // To store user's holdings for the coin
     
     enum CodingKeys: String, CodingKey {
         case id, symbol, name, image
@@ -169,22 +221,40 @@ struct CoinGeckoCoin: Decodable, Identifiable {
         case currentHoldings
     }
     
+    // Method to update holdings
     func updateHoldings(amount: Double) -> CoinGeckoCoin {
-        
-        return CoinGeckoCoin(id: id, symbol: symbol, name: name, image: image, current_price: current_price, market_cap: market_cap, market_cap_rank: market_cap_rank, total_volume: total_volume, high24h: high24h, low24h: low24h, price_change_percentage_24h: price_change_percentage_24h, price_change_24h: price_change_24h, marketCapChange24h: marketCapChange24h, marketCapChangePercentage24h: marketCapChangePercentage24h, lastUpdated: lastUpdated, sparkline_in_7d: sparkline_in_7d, currentHoldings: amount)
-        
+        return CoinGeckoCoin(
+            id: id,
+            symbol: symbol,
+            name: name,
+            image: image,
+            current_price: current_price,
+            market_cap: market_cap,
+            market_cap_rank: market_cap_rank,
+            total_volume: total_volume,
+            high24h: high24h,
+            low24h: low24h,
+            price_change_percentage_24h: price_change_percentage_24h,
+            price_change_24h: price_change_24h,
+            marketCapChange24h: marketCapChange24h,
+            marketCapChangePercentage24h: marketCapChangePercentage24h,
+            lastUpdated: lastUpdated,
+            sparkline_in_7d: sparkline_in_7d,
+            currentHoldings: amount
+        )
     }
+    
+    // Current holdings value
     var currentHoldingsValue: Double {
         return (currentHoldings ?? 0) * current_price
     }
+    
     var rank: Int {
         return Int(market_cap_rank ?? 0)
     }
     
+    // Sparkline data for the last 7 days
     struct Sparkline: Decodable {
         let price: [Double]
     }
-
-    
-    
 }
