@@ -7,7 +7,7 @@ struct PortfolioView: View {
     @State private var isCoinSortAscending = true
     @State private var isPriceSortAscending = true
     
-    // Only show coins that the user has added (with holdings)
+    // Filtered coins
     var filteredCoins: [CoinGeckoCoin] {
         let addedCoins = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
         
@@ -15,7 +15,6 @@ struct PortfolioView: View {
             coin.name.localizedCaseInsensitiveContains(searchText) || coin.symbol.localizedCaseInsensitiveContains(searchText)
         }
         
-        // Sort coins by name or price based on user selection
         let sortedCoins = coins.sorted { (coin1, coin2) -> Bool in
             if isCoinSortAscending {
                 return coin1.symbol < coin2.symbol
@@ -36,17 +35,16 @@ struct PortfolioView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background Gradient
                 LinearGradient(
                     gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .ignoresSafeArea()
-                
-                VStack(spacing: 10) { // Reduce spacing here
+                .ignoresSafeArea() // Fill the safe area with the gradient
+
+                VStack(spacing: 10) {
                     HStack {
-                        NavigationLink(destination: EditPortfolioView(viewModel: viewModel)) {  // Pass viewModel to EditPortfolioView
+                        NavigationLink(destination: EditPortfolioView(viewModel: viewModel)) {
                             Image(systemName: "pencil")
                                 .foregroundColor(.white)
                                 .font(.title)
@@ -60,30 +58,29 @@ struct PortfolioView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                        .padding(.top, -20)
+                        .padding(.top, 3.5)
                     
-                    // Portfolio Stats View
-                    HStack(alignment: .top, spacing: 36) {
+                    HStack(alignment: .top, spacing: 31) {
                         PortfolioStatView(
                             title: "Portfolio Value",
                             value: viewModel.portfolioValue,
-                            percentageChange: "-2.84%" // Example data
+                            percentageChange: "2.30"
                         )
                         PortfolioStatView(
                             title: "24hr Volume",
-                            value: viewModel.volume,
+                            value: viewModel.portfolioVolume,
                             percentageChange: nil
                         )
                         PortfolioStatView(
                             title: "Top Holding Dominance",
-                            value: viewModel.topHoldingDominance, // Show top holding dominance
+                            value: viewModel.topHoldingDominance,
                             percentageChange: nil
                         )
                     }
                     .padding(.horizontal, 24)
                     .multilineTextAlignment(.center)
+                    .padding(.top, 10)
                     
-                    // Search bar
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.black)
@@ -107,17 +104,13 @@ struct PortfolioView: View {
                     .background(RoundedRectangle(cornerRadius: 25).fill(Color(.systemGray5)))
                     .padding(.horizontal, 6)
                     
-                    // Header Row
                     HStack {
-                        // Coin Sort Button
                         Button(action: {
                             isCoinSortAscending.toggle()
                         }) {
                             HStack {
                                 Text("Coins")
                                     .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                Image(systemName: "arrow.up.arrow.down")
                                     .foregroundColor(.white)
                             }
                         }
@@ -128,7 +121,6 @@ struct PortfolioView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                         
-                        // Price Sort Button
                         Button(action: {
                             isPriceSortAscending.toggle()
                         }) {
@@ -143,16 +135,27 @@ struct PortfolioView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                     .padding(.horizontal)
+                    .padding(.top, 10)
                     
-                    // Coin List
-                    ScrollView {
+                    // Coin List with Slide to Delete functionality
+                    List {
                         ForEach(filteredCoins, id: \.id) { coin in
                             CoinRowViewPortfolio(coin: coin)
+                                .listRowBackground(Color.clear) // Set row background to clear
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        viewModel.deleteCoin(coin)  // Call delete function
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
-                        .padding(.horizontal)
                     }
+                    .listStyle(PlainListStyle())
+                    .background(Color.clear)
+                    //.padding(.horizontal)
                     
-                    Spacer()
+                    //Spacer()
                 }
             }
         }
@@ -163,7 +166,7 @@ struct PortfolioView: View {
     }
 }
 
-// The row for displaying each coin
+// The row for displaying each coin remains unchanged
 struct CoinRowViewPortfolio: View {
     var coin: CoinGeckoCoin
 
@@ -184,7 +187,7 @@ struct CoinRowViewPortfolio: View {
 
             Text(coin.symbol.uppercased())
                 .foregroundColor(.white)
-                .font(.system(size: 16, weight: .bold)) // Bold font for coin names
+                .font(.system(size: 16, weight: .bold))
 
             Spacer()
 
@@ -209,10 +212,11 @@ struct CoinRowViewPortfolio: View {
             }
         }
         .padding(.vertical, 8)
+        .background(Color.clear) // Ensure the row background is clear
     }
 }
 
-// A helper view to display portfolio stats (top holding dominance, portfolio value, etc.)
+// A helper view to display portfolio stats remains unchanged
 struct PortfolioStatView: View {
     var title: String
     var value: String
@@ -225,7 +229,7 @@ struct PortfolioStatView: View {
                 .font(.system(size: 14, weight: .medium))
 
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
 
             if let percentageChange = percentageChange {
@@ -239,7 +243,7 @@ struct PortfolioStatView: View {
     }
 }
 
-// A preview for the PortfolioView
+// A preview for the PortfolioView remains unchanged
 #Preview {
     PortfolioView(viewModel: CryptoViewModel())
 }
