@@ -8,6 +8,7 @@ class CryptoViewModel: ObservableObject {
     @Published var dominance: String = ""  // Dominance of top coin in portfolio
     @Published var marketCapPercentageChange: String = ""  // Market Cap % change
     @Published var portfolioCoins: [CoinGeckoCoin] = []  // Portfolio coins with holdings
+    @Published var portfolioVolume: String = ""  // Volume for only portfolio coins             NEW CODE
     
     private var cancellables = Set<AnyCancellable>()  // For Combine publishers
     private let apiURL = "https://api.coingecko.com/api/v3"
@@ -19,15 +20,38 @@ class CryptoViewModel: ObservableObject {
         return String(format: "$%.2f", totalValue)
     }
     
-    // Top holding dominance: Dominance of the coin with the largest value in the portfolio
-    var topHoldingDominance: String {
-        if let topHolding = portfolioCoins.max(by: { $0.currentHoldingsValue < $1.currentHoldingsValue }) {
-            let dominanceValue = (topHolding.currentHoldingsValue / Double(coins.reduce(0) { $0 + $1.market_cap })) * 100
-            return String(format: "%.2f%%", dominanceValue)
+    // Function to delete a coin from the portfolio
+        func deleteCoin(_ coin: CoinGeckoCoin) {
+            // Remove the coin from the portfolio
+            if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
+                portfolioCoins.remove(at: index)
+            }
+            
+            // Update the portfolio volume
+            portfolioVolume = calculatedPortfolioVolume
         }
-        return "N/A"
+    
+    var calculatedPortfolioVolume: String {                                             //NEW CODE
+        let totalVolume = portfolioCoins.reduce(0) { $0 + $1.total_volume }
+        return formatLargeNumber(String(totalVolume))
     }
     
+    // Top holding dominance: Dominance of the coin with the largest value in the portfolio
+    var topHoldingDominance: String {
+        let totalPortfolioValue = portfolioCoins.reduce(0) { $0 + $1.currentHoldingsValue }
+
+        // Ensure totalPortfolioValue is greater than 0 to avoid division by zero
+        guard totalPortfolioValue > 0,
+              let topHolding = portfolioCoins.max(by: { $0.currentHoldingsValue < $1.currentHoldingsValue }) else {
+            return "N/A"
+        }
+
+        // Calculate dominance as a percentage of the total portfolio value
+        let dominanceValue = (topHolding.currentHoldingsValue / totalPortfolioValue) * 100
+        return String(format: "%.2f%%", dominanceValue)
+    }
+    
+    // API Key Handling (Optional if using API Key)
     var apiKey: String {
         guard let filePath = Bundle.main.path(forResource: "secrets", ofType: "plist"),
               let plist = NSDictionary(contentsOfFile: filePath),
@@ -159,7 +183,8 @@ class CryptoViewModel: ObservableObject {
         }
     }
     
-    // Update portfolio after fetching coin data to match saved portfolio holdings
+   
+    
     private func updatePortfolioAfterCoinFetch() {
         if let savedPortfolio = UserDefaults.standard.dictionary(forKey: portfolioKey) as? [String: Double] {
             portfolioCoins = coins.compactMap { coin in
@@ -168,10 +193,12 @@ class CryptoViewModel: ObservableObject {
                 }
                 return nil
             }
+            portfolioVolume = calculatedPortfolioVolume  // Update the portfolio volume here
         }
     }
     
-    // Update the portfolio with new holdings
+   
+    
     func updatePortfolio(with coin: CoinGeckoCoin, amount: Double) {
         if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
             portfolioCoins[index] = coin.updateHoldings(amount: amount)  // Update existing coin
@@ -180,7 +207,11 @@ class CryptoViewModel: ObservableObject {
             portfolioCoins.append(updatedCoin)  // Add new coin to portfolio
         }
         savePortfolio()  // Save the updated portfolio to UserDefaults
+        portfolioVolume = calculatedPortfolioVolume  // Update portfolio volume
     }
+    
+    
+    
 }
 
 
@@ -257,4 +288,26 @@ struct CoinGeckoCoin: Decodable, Identifiable {
     struct Sparkline: Decodable {
         let price: [Double]
     }
+    
+    struct GlobalData: Codable {
+        let data: MarketData
+        
+        struct MarketData: Codable {
+            let marketCap: Double
+            let volume: Double
+            let btcDominance: Double
+            let marketCapChangePercentage24HUsd: Double
+            
+            enum CodingKeys: String, CodingKey {
+                case marketCap = "total_market_cap"
+                case volume = "total_volume"
+                case btcDominance = "btc_dominance"
+                case marketCapChangePercentage24HUsd = "market_cap_change_percentage_24h_usd"
+            }
+        }
+    }
+    
+    
 }
+
+
