@@ -7,17 +7,35 @@ struct HomeView: View {
     @EnvironmentObject var vm: CryptoViewModel
 
     @State private var showPortfolio: Bool = false
+    @State private var showPortfolioView: Bool = false
     @State private var searchText = ""
+    
+    @State private var isCoinSortAscending: Bool = false
+    @State private var isPriceSortAscending: Bool = false
 
-    // Filtered coins based on search text
+    // Filtered and sorted coins based on search text and sorting criteria
     var filteredCoins: [CoinGeckoCoin] {
+        // Filter based on search text
+        var coinsToDisplay: [CoinGeckoCoin]
         if searchText.isEmpty {
-            return viewModel.coins
+            coinsToDisplay = viewModel.coins
         } else {
-            return viewModel.coins.filter { coin in
+            coinsToDisplay = viewModel.coins.filter { coin in
                 coin.name.localizedCaseInsensitiveContains(searchText) ||
                 coin.symbol.localizedCaseInsensitiveContains(searchText)
             }
+        }
+        
+        // Sort based on user selection
+        if isCoinSortAscending {
+            // Sort by rank in reverse order
+            return coinsToDisplay.sorted { $0.rank > $1.rank }
+        } else if isPriceSortAscending {
+            // Sort by price in ascending order
+            return coinsToDisplay.sorted { $0.current_price < $1.current_price }
+        } else {
+            // Default sort by rank in ascending order
+            return coinsToDisplay.sorted { $0.rank < $1.rank }
         }
     }
     
@@ -55,12 +73,12 @@ struct HomeView: View {
                             percentageChange: nil
                         )
                         StatView(
-                            title: "Coin Dominance",
+                            title: "Top Coin Dominance",
                             value: viewModel.dominance,
                             percentageChange: nil
                         )
                     }
-                    .padding(.horizontal, 24) // Increased padding to center content better
+                    .padding(.horizontal, 24)
                     .multilineTextAlignment(.center)
 
                     // Search bar
@@ -78,28 +96,48 @@ struct HomeView: View {
                             TextField("", text: $searchText)
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
-                                .foregroundColor(.black) // Text color
+                                .foregroundColor(.black)
                                 .padding(.leading, 5)
                         }
                     }
                     .frame(height: 50)
                     .frame(maxWidth: .infinity)
                     .background(RoundedRectangle(cornerRadius: 25)
-                        .fill(Color(.systemGray5)) // Updated background to light grey color
+                        .fill(Color(.systemGray5))
                         .shadow(color: .white.opacity(0.15), radius: 10, x: 0, y: 0))
                     .padding(.horizontal, 6)
 
                     // Header Row
                     HStack {
-                        Text("Coins")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        // Coin Sort Button
+                        Button(action: {
+                            isCoinSortAscending.toggle()
+                            isPriceSortAscending = false // Reset price sort
+                        }) {
+                            HStack {
+                                Text("Coins")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         
                         HStack {
-                            Text("Prices")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
+                            Button(action: {
+                                isPriceSortAscending.toggle()
+                                isCoinSortAscending = false // Reset coin sort
+                            }) {
+                                HStack {
+                                    Text("Prices")
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Image(systemName: "arrow.up.arrow.down")
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                             
                             // Refresh button
                             Button(action: {
@@ -118,7 +156,6 @@ struct HomeView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
                             ForEach(filteredCoins, id: \.id) { coin in
-                                // Updated NavigationLink
                                 NavigationLink(
                                     destination: CryptoDetailView(
                                         viewModel: CryptoDetailViewModel(coin: coin)
@@ -163,7 +200,7 @@ struct CoinRowView: View {
 
             Text(coin.symbol.uppercased())
                 .foregroundColor(.white)
-                .font(.system(size: 16, weight: .bold)) // Bold font for coin names
+                .font(.system(size: 16, weight: .bold))
 
             Spacer()
 
@@ -192,7 +229,7 @@ struct StatView: View {
                 .font(.system(size: 14, weight: .medium))
 
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
 
             if let percentageChange = percentageChange {
@@ -206,13 +243,14 @@ struct StatView: View {
     }
 }
 
+/*
 struct StatView_Previews: PreviewProvider {
     static var previews: some View {
         StatView(title: "Market Cap", value: "$1.24Tr", percentageChange: "-15.2%")
             .background(Color.black)
             .previewLayout(.sizeThatFits)
     }
-}
+}*/
 
 #Preview {
     HomeView().environmentObject(CryptoViewModel())
