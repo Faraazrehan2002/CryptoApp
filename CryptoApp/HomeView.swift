@@ -12,10 +12,9 @@ struct HomeView: View {
     
     @State private var isCoinSortAscending: Bool = false
     @State private var isPriceSortAscending: Bool = false
+    @State private var navigateToNews: Bool = false
 
-    // Filtered and sorted coins based on search text and sorting criteria
     var filteredCoins: [CoinGeckoCoin] {
-        // Filter based on search text
         var coinsToDisplay: [CoinGeckoCoin]
         if searchText.isEmpty {
             coinsToDisplay = viewModel.coins
@@ -26,15 +25,11 @@ struct HomeView: View {
             }
         }
         
-        // Sort based on user selection
         if isCoinSortAscending {
-            // Sort by rank in reverse order
             return coinsToDisplay.sorted { $0.rank > $1.rank }
         } else if isPriceSortAscending {
-            // Sort by price in ascending order
             return coinsToDisplay.sorted { $0.current_price < $1.current_price }
         } else {
-            // Default sort by rank in ascending order
             return coinsToDisplay.sorted { $0.rank < $1.rank }
         }
     }
@@ -42,7 +37,6 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background Gradient
                 LinearGradient(
                     gradient: Gradient(colors: [
                         Color(hex: "#851439"),
@@ -59,8 +53,8 @@ struct HomeView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
+                        
                     
-                    // Stats View (Market Cap, 24hr Volume, Coin Dominance)
                     HStack(alignment: .top, spacing: 36) {
                         StatView(
                             title: "Market Cap",
@@ -80,13 +74,13 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 24)
                     .multilineTextAlignment(.center)
-
+                    
                     // Search bar
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.black)
                             .padding(.leading, 10)
-
+                        
                         ZStack(alignment: .leading) {
                             if searchText.isEmpty {
                                 Text("Search")
@@ -106,13 +100,13 @@ struct HomeView: View {
                         .fill(Color(.systemGray5))
                         .shadow(color: .white.opacity(0.15), radius: 10, x: 0, y: 0))
                     .padding(.horizontal, 6)
-
+                    
                     // Header Row
                     HStack {
                         // Coin Sort Button
                         Button(action: {
                             isCoinSortAscending.toggle()
-                            isPriceSortAscending = false // Reset price sort
+                            isPriceSortAscending = false
                         }) {
                             HStack {
                                 Text("Coins")
@@ -127,7 +121,7 @@ struct HomeView: View {
                         HStack {
                             Button(action: {
                                 isPriceSortAscending.toggle()
-                                isCoinSortAscending = false // Reset coin sort
+                                isCoinSortAscending = false
                             }) {
                                 HStack {
                                     Text("Prices")
@@ -141,7 +135,7 @@ struct HomeView: View {
                             
                             // Refresh button
                             Button(action: {
-                                viewModel.fetchCryptoData() // Refreshes the crypto data
+                                viewModel.fetchCryptoData()
                             }) {
                                 Image(systemName: "arrow.clockwise")
                                     .foregroundColor(.white)
@@ -153,32 +147,51 @@ struct HomeView: View {
                     .padding(.horizontal)
                     
                     // Coin List
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            ForEach(filteredCoins, id: \.id) { coin in
-                                NavigationLink(
-                                    destination: CryptoDetailView(
-                                        viewModel: CryptoDetailViewModel(coin: coin)
+                                        ScrollView {
+                                            VStack(alignment: .leading, spacing: 20) {
+                                            ForEach(filteredCoins, id: \.id) { coin in
+                                                    NavigationLink(
+                                                        destination: CryptoDetailView(
+                                                            viewModel: CryptoDetailViewModel(coin: coin)
+                                                        )
+                                                    ) {
+                                                        CoinRowView(coin: coin)
+                                                    }
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                        }
+
+                                        Spacer()
+                                    }
+                                    .padding(.top, 50)
+                                    .gesture(
+                                        DragGesture()
+                                            .onEnded { value in
+                                                if value.translation.width > 100 {
+                                                    withAnimation(.easeInOut){
+                                                        navigateToNews = true
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    .background(
+                                        NavigationLink(
+                                            destination: CryptoNewsView()
+                                                .transition(.move(edge: .leading)),
+                                            isActive: $navigateToNews,
+                                            label: { EmptyView() }
+                                        )
+                                        .hidden()
                                     )
-                                ) {
-                                    CoinRowView(coin: coin)
                                 }
                             }
+                            .tabItem {
+                                Image(systemName: "house")
+                                Text("Home")
+                            }
                         }
-                        .padding(.horizontal)
                     }
-                    
-                    Spacer()
-                }
-                .padding(.top, 50)
-            }
-        }
-        .tabItem {
-            Image(systemName: "house")
-            Text("Home")
-        }
-    }
-}
 
 struct CoinRowView: View {
     var coin: CoinGeckoCoin
