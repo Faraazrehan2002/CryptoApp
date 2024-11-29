@@ -6,7 +6,8 @@ struct PortfolioView: View {
     @State private var searchText = ""
     @State private var isCoinSortAscending = true
     @State private var isPriceSortAscending = true
-    
+    @State private var isLandscape: Bool = false // Track orientation
+
     // Filtered coins
     var filteredCoins: [CoinGeckoCoin] {
         let addedCoins = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
@@ -31,7 +32,7 @@ struct PortfolioView: View {
         
         return sortedCoins
     }
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -40,133 +41,193 @@ struct PortfolioView: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .ignoresSafeArea() // Fill the safe area with the gradient
+                .ignoresSafeArea()
 
-                VStack(spacing: 10) {
-                    HStack {
-                        NavigationLink(destination: EditPortfolioView(viewModel: viewModel)) {
-                            Image(systemName: "pencil")
-                                .foregroundColor(.white)
-                                .font(.title)
+                if isLandscape {
+                    // Unified vertical layout for landscape mode
+                    ScrollView {
+                        VStack(spacing: 10) {
+                            header
+                            title
+                            stats
+                            searchBar
+                            sortingHeader
+                            coinList
                         }
-                        Spacer()
+                        .padding(.horizontal)
+                    }
+                } else {
+                    // Original portrait layout
+                    VStack(spacing: 10) {
+                        header
+                        title
+                        stats
+                        searchBar
+                        sortingHeader
+                        coinList
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
-                    
-                    Text("Portfolio")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.top, 3.5)
-                    
-                    HStack(alignment: .top, spacing: 31) {
-                        PortfolioStatView(
-                            title: "Portfolio Value",
-                            value: viewModel.portfolioValue,
-                            percentageChange: "2.30"
-                        )
-                        PortfolioStatView(
-                            title: "24hr Volume",
-                            value: viewModel.portfolioVolume,
-                            percentageChange: nil
-                        )
-                        PortfolioStatView(
-                            title: "Top Holding Dominance",
-                            value: viewModel.topHoldingDominance,
-                            percentageChange: nil
-                        )
-                    }
-                    .padding(.horizontal, 24)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 10)
-                    
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.black)
-                            .padding(.leading, 10)
-                        
-                        ZStack(alignment: .leading) {
-                            if searchText.isEmpty {
-                                Text("Search")
-                                    .foregroundColor(.black)
-                                    .padding(.leading, 5)
-                            }
-                            TextField("", text: $searchText)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                                .foregroundColor(.black)
-                                .padding(.leading, 5)
-                        }
-                    }
-                    .frame(height: 50)
-                    .frame(maxWidth: .infinity)
-                    .background(RoundedRectangle(cornerRadius: 25).fill(Color(.systemGray5)))
-                    .padding(.horizontal, 6)
-                    
-                    HStack {
-                        Button(action: {
-                            isCoinSortAscending.toggle()
-                        }) {
-                            HStack {
-                                Text("Coins")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Text("Holdings")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                        
-                        Button(action: {
-                            isPriceSortAscending.toggle()
-                        }) {
-                            HStack {
-                                Text("Prices")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                Image(systemName: "arrow.up.arrow.down")
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    
-                    // Coin List with Slide to Delete functionality
-                    List {
-                        ForEach(filteredCoins, id: \.id) { coin in
-                            CoinRowViewPortfolio(coin: coin)
-                                .listRowBackground(Color.clear) // Set row background to clear
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        viewModel.deleteCoin(coin)  // Call delete function
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                        }
-                    }
-                    .listStyle(PlainListStyle())
-                    .background(Color.clear)
-                    //.padding(.horizontal)
-                    
-                    //Spacer()
                 }
             }
+        }
+        .onAppear {
+            updateOrientation()
+            NotificationCenter.default.addObserver(
+                forName: UIDevice.orientationDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                updateOrientation()
+            }
+        }
+        .onDisappear {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: UIDevice.orientationDidChangeNotification,
+                object: nil
+            )
         }
         .tabItem {
             Image(systemName: "briefcase")
             Text("Portfolio")
         }
     }
+
+    private func updateOrientation() {
+        isLandscape = UIDevice.current.orientation.isLandscape
+    }
+
+    // Header with edit button
+    private var header: some View {
+        HStack {
+            NavigationLink(destination: EditPortfolioView(viewModel: viewModel)) {
+                Image(systemName: "pencil")
+                    .foregroundColor(.white)
+                    .font(.title)
+            }
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.top, 10)
+    }
+
+    // Title
+    private var title: some View {
+        Text("Portfolio")
+            .font(.largeTitle)
+            .fontWeight(.bold)
+            .foregroundColor(.white)
+            .padding(.top, 3.5)
+    }
+
+    // Stats Section
+    private var stats: some View {
+        HStack(alignment: .top, spacing: 31) {
+            PortfolioStatView(
+                title: "Portfolio Value",
+                value: viewModel.portfolioValue,
+                percentageChange: "2.30"
+            )
+            PortfolioStatView(
+                title: "24hr Volume",
+                value: viewModel.portfolioVolume,
+                percentageChange: nil
+            )
+            PortfolioStatView(
+                title: "Top Holding Dominance",
+                value: viewModel.topHoldingDominance,
+                percentageChange: nil
+            )
+        }
+        .padding(.horizontal, 24)
+        .multilineTextAlignment(.center)
+        .padding(.top, 10)
+    }
+
+    // Search Bar
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.black)
+                .padding(.leading, 10)
+
+            ZStack(alignment: .leading) {
+                if searchText.isEmpty {
+                    Text("Search")
+                        .foregroundColor(.black)
+                        .padding(.leading, 5)
+                }
+                TextField("", text: $searchText)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .foregroundColor(.black)
+                    .padding(.leading, 5)
+            }
+        }
+        .frame(height: 50)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 25).fill(Color(.systemGray5)))
+        .padding(.horizontal, 6)
+    }
+
+    // Sorting Header
+    private var sortingHeader: some View {
+        HStack {
+            Button(action: {
+                isCoinSortAscending.toggle()
+            }) {
+                HStack {
+                    Text("Coins")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("Holdings")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+
+            Button(action: {
+                isPriceSortAscending.toggle()
+            }) {
+                HStack {
+                    Text("Prices")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                    Image(systemName: "arrow.up.arrow.down")
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal)
+        .padding(.top, 10)
+    }
+
+    // Coin List
+    private var coinList: some View {
+        List {
+            ForEach(filteredCoins, id: \.id) { coin in
+                CoinRowViewPortfolio(coin: coin)
+                    .listRowBackground(Color.clear)
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            viewModel.deleteCoin(coin)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+            }
+        }
+        .listStyle(PlainListStyle())
+        .background(Color.clear)
+    }
 }
 
-// The row for displaying each coin remains unchanged
+// CoinRowViewPortfolio
 struct CoinRowViewPortfolio: View {
     var coin: CoinGeckoCoin
 
@@ -212,11 +273,11 @@ struct CoinRowViewPortfolio: View {
             }
         }
         .padding(.vertical, 8)
-        .background(Color.clear) // Ensure the row background is clear
+        .background(Color.clear)
     }
 }
 
-// A helper view to display portfolio stats remains unchanged
+// PortfolioStatView
 struct PortfolioStatView: View {
     var title: String
     var value: String
@@ -243,7 +304,7 @@ struct PortfolioStatView: View {
     }
 }
 
-// A preview for the PortfolioView remains unchanged
 #Preview {
     PortfolioView(viewModel: CryptoViewModel())
 }
+
