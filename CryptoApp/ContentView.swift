@@ -13,8 +13,8 @@ struct ContentView: View {
     
     var body: some View {
         TabView {
-            HomeView()
-                .environmentObject(vm) 
+            HomeView(viewModel: CryptoViewModel())
+                .environmentObject(vm)
             PortfolioView(viewModel: CryptoViewModel())
             SettingsView()
         }
