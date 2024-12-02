@@ -4,29 +4,8 @@ struct SettingsView: View {
     @State private var isLandscape: Bool = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if isLandscape {
-                    HStack(alignment: .top, spacing: 20) {
-                        appDetails
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        aboutUs
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal)
-                } else {
-                    // Portrait Layout
-                    VStack(alignment: .leading, spacing: 20) {
-                        appDetails
-                        aboutUs
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 30)
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .background(
+        ZStack {
+            // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color(hex: "#851439"), // Magenta-like color
@@ -36,7 +15,38 @@ struct SettingsView: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-        )
+
+            VStack {
+                // Headline
+                Text("Settings")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.top, 10)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if isLandscape {
+                            HStack(alignment: .top, spacing: 20) {
+                                appDetails
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                aboutUs
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.horizontal)
+                        } else {
+                            // Portrait Layout
+                            VStack(alignment: .leading, spacing: 20) {
+                                appDetails
+                                aboutUs
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 30)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
         .onAppear {
             updateOrientation()
             NotificationCenter.default.addObserver(
@@ -67,7 +77,7 @@ struct SettingsView: View {
     // App Details Section
     private var appDetails: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Image("AppIcon")
+            Image("app icon")
                 .resizable()
                 .frame(width: 100, height: 100)
                 .clipShape(RoundedRectangle(cornerRadius: 10))

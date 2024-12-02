@@ -21,15 +21,15 @@ class CryptoViewModel: ObservableObject {
     }
     
     // Function to delete a coin from the portfolio
-        func deleteCoin(_ coin: CoinGeckoCoin) {
-            // Remove the coin from the portfolio
-            if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
-                portfolioCoins.remove(at: index)
-            }
-            
-            // Update the portfolio volume
-            portfolioVolume = calculatedPortfolioVolume
-        }
+//        func deleteCoin(_ coin: CoinGeckoCoin) {
+//            // Remove the coin from the portfolio
+//            if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
+//                portfolioCoins.remove(at: index)
+//            }
+//            
+//            // Update the portfolio volume
+//            portfolioVolume = calculatedPortfolioVolume
+//        }
     
     var calculatedPortfolioVolume: String {                                             //NEW CODE
         let totalVolume = portfolioCoins.reduce(0) { $0 + $1.total_volume }

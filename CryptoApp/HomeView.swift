@@ -44,47 +44,21 @@ struct HomeView: View {
                 )
                 .ignoresSafeArea()
 
-                if isLandscape {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            title
-                            stats
-                            searchBar
-                            coinList
-                        }
-                        .padding(.horizontal)
-                    }
-                } else {
-                    // Original portrait mode layout
-                    VStack(spacing: 20) {
-                        title
-                        HStack(alignment: .top, spacing: 36) {
-                            StatView(
-                                title: "Market Cap",
-                                value: viewModel.marketCap,
-                                percentageChange: viewModel.marketCapPercentageChange
-                            )
-                            StatView(
-                                title: "24hr Volume",
-                                value: viewModel.volume,
-                                percentageChange: nil
-                            )
-                            StatView(
-                                title: "Top Coin Dominance",
-                                value: viewModel.dominance,
-                                percentageChange: nil
-                            )
-                        }
-                        .padding(.horizontal, 24)
-                        .multilineTextAlignment(.center)
+                VStack(spacing: 20) {
+                    // Properly aligned title
+                    Text("Live Prices")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.top, 20) // Adjust padding for proper alignment
+                    
+                    stats
+                    searchBar
+                    coinList
 
-                        searchBar
-                        coinList
-
-                        Spacer()
-                    }
-                    .padding(.top, 50)
+                    Spacer()
                 }
+                .padding(.horizontal)
             }
             .gesture(
                 DragGesture()
@@ -131,15 +105,6 @@ struct HomeView: View {
 
     private func updateOrientation() {
         isLandscape = UIDevice.current.orientation.isLandscape
-    }
-
-    // Title
-    private var title: some View {
-        Text("Live Prices")
-            .font(.largeTitle)
-            .fontWeight(.bold)
-            .foregroundColor(.white)
-            .padding(.top, isLandscape ? 10 : 30)
     }
 
     // Stats Section

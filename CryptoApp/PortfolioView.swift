@@ -2,35 +2,26 @@ import SwiftUI
 
 struct PortfolioView: View {
     @ObservedObject var viewModel: CryptoViewModel
-    
-    @State private var searchText = ""
-    @State private var isCoinSortAscending = true
-    @State private var isPriceSortAscending = true
-    @State private var isLandscape: Bool = false // Track orientation
 
-    // Filtered coins
+    @State private var searchText = ""
+    @State private var isPriceSortAscending = true
+
+    // Computed Property: Filtered and Sorted Coins
     var filteredCoins: [CoinGeckoCoin] {
         let addedCoins = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
-        
+
         let coins = searchText.isEmpty ? addedCoins : addedCoins.filter { coin in
             coin.name.localizedCaseInsensitiveContains(searchText) || coin.symbol.localizedCaseInsensitiveContains(searchText)
         }
-        
-        let sortedCoins = coins.sorted { (coin1, coin2) -> Bool in
-            if isCoinSortAscending {
-                return coin1.symbol < coin2.symbol
-            } else {
-                return coin1.symbol > coin2.symbol
-            }
-        }.sorted { (coin1, coin2) -> Bool in
+
+        // Sort by price
+        return coins.sorted { (coin1, coin2) -> Bool in
             if isPriceSortAscending {
                 return coin1.current_price < coin2.current_price
             } else {
                 return coin1.current_price > coin2.current_price
             }
         }
-        
-        return sortedCoins
     }
 
     var body: some View {
@@ -43,50 +34,21 @@ struct PortfolioView: View {
                 )
                 .ignoresSafeArea()
 
-                if isLandscape {
-                    // Unified vertical layout for landscape mode
-                    ScrollView {
-                        VStack(spacing: 10) {
-                            header
-                            title
-                            stats
-                            searchBar
-                            sortingHeader
-                            coinList
-                        }
-                        .padding(.horizontal)
-                    }
-                } else {
-                    // Original portrait layout
-                    VStack(spacing: 10) {
-                        header
-                        title
-                        stats
-                        searchBar
-                        sortingHeader
-                        coinList
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
+                VStack(spacing: 10) {
+                    // Combined Header and Centered Title
+                    combinedHeaderAndTitle
+
+                    // Stats and Search Bar
+                    stats
+                    searchBar
+
+                    // Sorting Header and Coin List
+                    sortingHeader
+                    coinList
                 }
+                .padding(.horizontal)
+                .padding(.top, 10)
             }
-        }
-        .onAppear {
-            updateOrientation()
-            NotificationCenter.default.addObserver(
-                forName: UIDevice.orientationDidChangeNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                updateOrientation()
-            }
-        }
-        .onDisappear {
-            NotificationCenter.default.removeObserver(
-                self,
-                name: UIDevice.orientationDidChangeNotification,
-                object: nil
-            )
         }
         .tabItem {
             Image(systemName: "briefcase")
@@ -94,44 +56,37 @@ struct PortfolioView: View {
         }
     }
 
-    private func updateOrientation() {
-        isLandscape = UIDevice.current.orientation.isLandscape
-    }
-
-    // Header with edit button
-    private var header: some View {
+    private var combinedHeaderAndTitle: some View {
         HStack {
             NavigationLink(destination: EditPortfolioView(viewModel: viewModel)) {
                 Image(systemName: "pencil")
                     .foregroundColor(.white)
                     .font(.title)
             }
+
             Spacer()
+
+            Text("Portfolio")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.trailing, 30) // Adjust for alignment with the edit button
         }
         .padding(.horizontal)
         .padding(.top, 10)
     }
 
-    // Title
-    private var title: some View {
-        Text("Portfolio")
-            .font(.largeTitle)
-            .fontWeight(.bold)
-            .foregroundColor(.white)
-            .padding(.top, 3.5)
-    }
-
-    // Stats Section
     private var stats: some View {
         HStack(alignment: .top, spacing: 31) {
             PortfolioStatView(
                 title: "Portfolio Value",
-                value: viewModel.portfolioValue,
-                percentageChange: "2.30"
+                value: viewModel.calculatePortfolioValue.formatLargeNumberWithoutDecimals(),
+                percentageChange: "2.30" // Add logic to calculate this if needed
             )
             PortfolioStatView(
                 title: "24hr Volume",
-                value: viewModel.portfolioVolume,
+                value: viewModel.calculate24hrVolume.formatLargeNumberWithoutDecimals(),
                 percentageChange: nil
             )
             PortfolioStatView(
@@ -145,7 +100,6 @@ struct PortfolioView: View {
         .padding(.top, 10)
     }
 
-    // Search Bar
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
@@ -171,24 +125,19 @@ struct PortfolioView: View {
         .padding(.horizontal, 6)
     }
 
-    // Sorting Header
     private var sortingHeader: some View {
         HStack {
-            Button(action: {
-                isCoinSortAscending.toggle()
-            }) {
-                HStack {
-                    Text("Coins")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("Coins")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
 
             Text("Holdings")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             Button(action: {
                 isPriceSortAscending.toggle()
@@ -197,7 +146,7 @@ struct PortfolioView: View {
                     Text("Prices")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
-                    Image(systemName: "arrow.up.arrow.down")
+                    Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
                         .foregroundColor(.white)
                 }
             }
@@ -207,24 +156,26 @@ struct PortfolioView: View {
         .padding(.top, 10)
     }
 
-    // Coin List
     private var coinList: some View {
         List {
             ForEach(filteredCoins, id: \.id) { coin in
                 CoinRowViewPortfolio(coin: coin)
                     .listRowBackground(Color.clear)
-                    .swipeActions {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             viewModel.deleteCoin(coin)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .tint(Color(red: 0.6, green: 0, blue: 0)) // Dark red color
                     }
             }
         }
         .listStyle(PlainListStyle())
         .background(Color.clear)
     }
+
+
 }
 
 // CoinRowViewPortfolio
@@ -233,9 +184,7 @@ struct CoinRowViewPortfolio: View {
 
     var body: some View {
         HStack {
-            Text("\(coin.rank).")
-                .foregroundColor(.white)
-
+            // Coin Image and Symbol
             AsyncImage(url: URL(string: coin.image)) { image in
                 image
                     .resizable()
@@ -248,36 +197,37 @@ struct CoinRowViewPortfolio: View {
 
             Text(coin.symbol.uppercased())
                 .foregroundColor(.white)
-                .font(.system(size: 16, weight: .bold))
+                .font(.headline)
 
             Spacer()
 
-            VStack(alignment: .trailing) {
-                Text("$\(coin.currentHoldingsValue, specifier: "%.2f")")
-                    .font(.system(size: 16, weight: .bold))
+            // Holdings Column
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(coin.currentHoldingsValue.formatLargeNumber())
+                    .font(.headline)
                     .foregroundColor(.white)
                 Text("\(coin.currentHoldings ?? 0, specifier: "%.2f")")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.7))
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .trailing)
 
-            VStack(alignment: .trailing) {
+            // Prices Column
+            VStack(alignment: .trailing, spacing: 2) {
                 Text("$\(coin.current_price, specifier: "%.2f")")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.headline)
                     .foregroundColor(.white)
                 Text("\(coin.price_change_percentage_24h, specifier: "%.2f")%")
                     .foregroundColor(coin.price_change_percentage_24h < 0 ? .red : .green)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.subheadline)
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.vertical, 8)
-        .background(Color.clear)
     }
 }
 
-// PortfolioStatView
+// PortfolioStatView Component
 struct PortfolioStatView: View {
     var title: String
     var value: String
@@ -304,7 +254,48 @@ struct PortfolioStatView: View {
     }
 }
 
+extension Double {
+    func formatLargeNumber() -> String {
+        if self >= 1_000_000_000_000 {
+            return String(format: "%.2fT", self / 1_000_000_000_000)
+        } else if self >= 1_000_000_000 {
+            return String(format: "%.2fB", self / 1_000_000_000)
+        } else if self >= 1_000_000 {
+            return String(format: "%.2fM", self / 1_000_000)
+        } else {
+            return String(format: "%.2f", self)
+        }
+    }
+
+    func formatLargeNumberWithoutDecimals() -> String {
+        if self >= 1_000_000_000_000 {
+            return String(format: "%.0fT", self / 1_000_000_000_000)
+        } else if self >= 1_000_000_000 {
+            return String(format: "%.0fB", self / 1_000_000_000)
+        } else if self >= 1_000_000 {
+            return String(format: "%.0fM", self / 1_000_000)
+        } else {
+            return String(format: "%.0f", self)
+        }
+    }
+}
+
+extension CryptoViewModel {
+    var calculatePortfolioValue: Double {
+        return portfolioCoins.reduce(0) { $0 + (($1.currentHoldings ?? 0) * $1.current_price) }
+    }
+
+    var calculate24hrVolume: Double {
+        return portfolioCoins.reduce(0) { $0 + ($1.total_volume * ($1.currentHoldings ?? 0)) }
+    }
+
+    func deleteCoin(_ coin: CoinGeckoCoin) {
+        if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
+            portfolioCoins.remove(at: index)
+        }
+    }
+}
+
 #Preview {
     PortfolioView(viewModel: CryptoViewModel())
 }
-
