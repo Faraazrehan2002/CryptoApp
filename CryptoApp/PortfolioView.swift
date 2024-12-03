@@ -82,23 +82,25 @@ struct PortfolioView: View {
             PortfolioStatView(
                 title: "Portfolio Value",
                 value: viewModel.calculatePortfolioValue.formatLargeNumberWithoutDecimals(),
+                isCurrency: true, // Specify that this is a monetary value
                 percentageChange: "2.30" // Add logic to calculate this if needed
             )
             PortfolioStatView(
                 title: "24hr Volume",
                 value: viewModel.calculate24hrVolume.formatLargeNumberWithoutDecimals(),
-                percentageChange: nil
+                isCurrency: true // Specify that this is a monetary value
             )
             PortfolioStatView(
                 title: "Top Holding Dominance",
-                value: viewModel.topHoldingDominance,
-                percentageChange: nil
+                value: viewModel.topHoldingDominance, // No dollar sign here
+                isCurrency: false
             )
         }
         .padding(.horizontal, 24)
         .multilineTextAlignment(.center)
         .padding(.top, 10)
     }
+
 
     private var searchBar: some View {
         HStack {
@@ -201,9 +203,9 @@ struct CoinRowViewPortfolio: View {
 
             Spacer()
 
-            // Holdings Column
+            // Holdings Column in CoinRowViewPortfolio
             VStack(alignment: .trailing, spacing: 2) {
-                Text(coin.currentHoldingsValue.formatLargeNumber())
+                Text("$\(coin.currentHoldingsValue.formatLargeNumber())") // Add $ here
                     .font(.headline)
                     .foregroundColor(.white)
                 Text("\(coin.currentHoldings ?? 0, specifier: "%.2f")")
@@ -212,9 +214,9 @@ struct CoinRowViewPortfolio: View {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
 
-            // Prices Column
+            // Prices Column in CoinRowViewPortfolio
             VStack(alignment: .trailing, spacing: 2) {
-                Text("$\(coin.current_price, specifier: "%.2f")")
+                Text("$\(coin.current_price, specifier: "%.2f")") // Add $ here
                     .font(.headline)
                     .foregroundColor(.white)
                 Text("\(coin.price_change_percentage_24h, specifier: "%.2f")%")
@@ -222,6 +224,8 @@ struct CoinRowViewPortfolio: View {
                     .font(.subheadline)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+
+
         }
         .padding(.vertical, 8)
     }
@@ -231,6 +235,7 @@ struct CoinRowViewPortfolio: View {
 struct PortfolioStatView: View {
     var title: String
     var value: String
+    var isCurrency: Bool = false // Add a flag to specify if the value represents a currency
     var percentageChange: String?
 
     var body: some View {
@@ -239,7 +244,7 @@ struct PortfolioStatView: View {
                 .foregroundColor(.white)
                 .font(.system(size: 14, weight: .medium))
 
-            Text(value)
+            Text("\(isCurrency ? "$" : "")\(value)") // Conditionally add the $
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
 
@@ -253,6 +258,7 @@ struct PortfolioStatView: View {
         .frame(maxWidth: .infinity)
     }
 }
+
 
 extension Double {
     func formatLargeNumber() -> String {

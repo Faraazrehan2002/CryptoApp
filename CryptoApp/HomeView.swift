@@ -6,7 +6,6 @@ struct HomeView: View {
     @EnvironmentObject var vm: CryptoViewModel
 
     @State private var searchText = ""
-    @State private var isCoinSortAscending: Bool = false
     @State private var isPriceSortAscending: Bool = false
     @State private var navigateToNews: Bool = false
     @State private var isLandscape: Bool = false
@@ -22,12 +21,10 @@ struct HomeView: View {
             }
         }
 
-        if isCoinSortAscending {
-            return coinsToDisplay.sorted { $0.rank > $1.rank }
-        } else if isPriceSortAscending {
+        if isPriceSortAscending {
             return coinsToDisplay.sorted { $0.current_price < $1.current_price }
         } else {
-            return coinsToDisplay.sorted { $0.rank < $1.rank }
+            return coinsToDisplay.sorted { $0.current_price > $1.current_price }
         }
     }
 
@@ -45,15 +42,44 @@ struct HomeView: View {
                 .ignoresSafeArea()
 
                 VStack(spacing: 20) {
-                    // Properly aligned title
+                    // Title
                     Text("Live Prices")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                        .padding(.top, 20) // Adjust padding for proper alignment
-                    
+                        .padding(.top, 20)
+
+                    // Stats Section
                     stats
+
+                    // Search Bar
                     searchBar
+
+                    // Heading and Sorting
+                    HStack {
+                        Text("Coins")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Spacer()
+
+                        Button(action: {
+                            isPriceSortAscending.toggle()
+                        }) {
+                            HStack {
+                                Text("Prices")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                                Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .padding(.horizontal)
+
+                    // Coin List
                     coinList
 
                     Spacer()
@@ -183,9 +209,6 @@ struct CoinRowView: View {
 
     var body: some View {
         HStack {
-            Text("\(coin.rank).")
-                .foregroundColor(.white)
-
             AsyncImage(url: URL(string: coin.image)) { image in
                 image
                     .resizable()
@@ -230,6 +253,8 @@ struct StatView: View {
             Text(value)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
+                .lineLimit(1) // Ensures the text stays on one line
+                .minimumScaleFactor(0.5) // Scales down if the text is too long
 
             if let percentageChange = percentageChange {
                 Text(percentageChange)
