@@ -8,7 +8,7 @@ class CryptoViewModel: ObservableObject {
     @Published var dominance: String = ""  // Dominance of top coin in portfolio
     @Published var marketCapPercentageChange: String = ""  // Market Cap % change
     @Published var portfolioCoins: [CoinGeckoCoin] = []  // Portfolio coins with holdings
-    @Published var portfolioVolume: String = ""  // Volume for only portfolio coins             NEW CODE
+    @Published var portfolioVolume: String = ""  // Volume for only portfolio coins
     
     private var cancellables = Set<AnyCancellable>()  // For Combine publishers
     private let apiURL = "https://api.coingecko.com/api/v3"
@@ -20,35 +20,23 @@ class CryptoViewModel: ObservableObject {
         return String(format: "$%.2f", totalValue)
     }
     
-    // Function to delete a coin from the portfolio
-//        func deleteCoin(_ coin: CoinGeckoCoin) {
-//            // Remove the coin from the portfolio
-//            if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
-//                portfolioCoins.remove(at: index)
-//            }
-//            
-//            // Update the portfolio volume
-//            portfolioVolume = calculatedPortfolioVolume
-//        }
-    
-    var calculatedPortfolioVolume: String {                                             //NEW CODE
-        let totalVolume = portfolioCoins.reduce(0) { $0 + $1.total_volume }
-        return formatLargeNumber(String(totalVolume))
-    }
-    
     // Top holding dominance: Dominance of the coin with the largest value in the portfolio
     var topHoldingDominance: String {
         let totalPortfolioValue = portfolioCoins.reduce(0) { $0 + $1.currentHoldingsValue }
 
-        // Ensure totalPortfolioValue is greater than 0 to avoid division by zero
         guard totalPortfolioValue > 0,
               let topHolding = portfolioCoins.max(by: { $0.currentHoldingsValue < $1.currentHoldingsValue }) else {
             return "N/A"
         }
 
-        // Calculate dominance as a percentage of the total portfolio value
         let dominanceValue = (topHolding.currentHoldingsValue / totalPortfolioValue) * 100
         return String(format: "%.2f%%", dominanceValue)
+    }
+    
+    // Portfolio 24hr volume
+    var calculatedPortfolioVolume: String {
+        let totalVolume = portfolioCoins.reduce(0) { $0 + $1.total_volume * ($1.currentHoldings ?? 0) }
+        return formatLargeNumber(String(totalVolume))
     }
     
     // API Key Handling (Optional if using API Key)
@@ -135,7 +123,7 @@ class CryptoViewModel: ObservableObject {
                     print("Error fetching global data: \(error.localizedDescription)")
                 }
             }, receiveValue: { [weak self] marketDataModel in
-                if let marketData = marketDataModel.data {  // Safely unwrap marketData
+                if let marketData = marketDataModel.data {
                     self?.marketCap = self?.formatLargeNumber(marketData.marketCap) ?? ""
                     self?.volume = self?.formatLargeNumber(marketData.volume) ?? ""
                     self?.dominance = marketData.btcDominance
@@ -145,8 +133,7 @@ class CryptoViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    
-    // Format large numbers for display (e.g., $1.24Bn)
+    // Format large numbers for display
     func formatLargeNumber(_ numberString: String) -> String {
         guard let number = Double(numberString) else { return numberString }
         
@@ -183,8 +170,6 @@ class CryptoViewModel: ObservableObject {
         }
     }
     
-   
-    
     private func updatePortfolioAfterCoinFetch() {
         if let savedPortfolio = UserDefaults.standard.dictionary(forKey: portfolioKey) as? [String: Double] {
             portfolioCoins = coins.compactMap { coin in
@@ -197,8 +182,6 @@ class CryptoViewModel: ObservableObject {
         }
     }
     
-   
-    
     func updatePortfolio(with coin: CoinGeckoCoin, amount: Double) {
         if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
             portfolioCoins[index] = coin.updateHoldings(amount: amount)  // Update existing coin
@@ -210,9 +193,15 @@ class CryptoViewModel: ObservableObject {
         portfolioVolume = calculatedPortfolioVolume  // Update portfolio volume
     }
     
-    
-    
+    func deleteCoin(_ coin: CoinGeckoCoin) {
+        if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
+            portfolioCoins.remove(at: index)
+        }
+        savePortfolio()  // Persist changes
+        portfolioVolume = calculatedPortfolioVolume  // Update portfolio volume
+    }
 }
+
 
 
 // CoinGeckoCoin struct including holdings

@@ -6,7 +6,6 @@ struct PortfolioView: View {
     @State private var searchText = ""
     @State private var isPriceSortAscending = true
 
-    // Computed Property: Filtered and Sorted Coins
     var filteredCoins: [CoinGeckoCoin] {
         let addedCoins = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
 
@@ -14,7 +13,6 @@ struct PortfolioView: View {
             coin.name.localizedCaseInsensitiveContains(searchText) || coin.symbol.localizedCaseInsensitiveContains(searchText)
         }
 
-        // Sort by price
         return coins.sorted { (coin1, coin2) -> Bool in
             if isPriceSortAscending {
                 return coin1.current_price < coin2.current_price
@@ -35,14 +33,9 @@ struct PortfolioView: View {
                 .ignoresSafeArea()
 
                 VStack(spacing: 10) {
-                    // Combined Header and Centered Title
                     combinedHeaderAndTitle
-
-                    // Stats and Search Bar
                     stats
                     searchBar
-
-                    // Sorting Header and Coin List
                     sortingHeader
                     coinList
                 }
@@ -71,7 +64,7 @@ struct PortfolioView: View {
                 .fontWeight(.bold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.trailing, 30) // Adjust for alignment with the edit button
+                .padding(.trailing, 30)
         }
         .padding(.horizontal)
         .padding(.top, 10)
@@ -81,18 +74,18 @@ struct PortfolioView: View {
         HStack(alignment: .top, spacing: 31) {
             PortfolioStatView(
                 title: "Portfolio Value",
-                value: viewModel.calculatePortfolioValue.formatLargeNumberWithoutDecimals(),
-                isCurrency: true, // Specify that this is a monetary value
-                percentageChange: "2.30" // Add logic to calculate this if needed
+                value: viewModel.portfolioValue,
+                isCurrency: true,
+                percentageChange: "2.30"
             )
             PortfolioStatView(
                 title: "24hr Volume",
-                value: viewModel.calculate24hrVolume.formatLargeNumberWithoutDecimals(),
-                isCurrency: true // Specify that this is a monetary value
+                value: viewModel.portfolioVolume,
+                isCurrency: true
             )
             PortfolioStatView(
                 title: "Top Holding Dominance",
-                value: viewModel.topHoldingDominance, // No dollar sign here
+                value: viewModel.topHoldingDominance,
                 isCurrency: false
             )
         }
@@ -100,7 +93,6 @@ struct PortfolioView: View {
         .multilineTextAlignment(.center)
         .padding(.top, 10)
     }
-
 
     private var searchBar: some View {
         HStack {
@@ -122,7 +114,6 @@ struct PortfolioView: View {
             }
         }
         .frame(height: 50)
-        .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 25).fill(Color(.systemGray5)))
         .padding(.horizontal, 6)
     }
@@ -141,9 +132,7 @@ struct PortfolioView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-            Button(action: {
-                isPriceSortAscending.toggle()
-            }) {
+            Button(action: { isPriceSortAscending.toggle() }) {
                 HStack {
                     Text("Prices")
                         .font(.system(size: 18, weight: .bold))
@@ -169,15 +158,13 @@ struct PortfolioView: View {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
-                        .tint(Color(red: 0.6, green: 0, blue: 0)) // Dark red color
+                        .tint(Color(red: 0.6, green: 0, blue: 0))
                     }
             }
         }
         .listStyle(PlainListStyle())
         .background(Color.clear)
     }
-
-
 }
 
 // CoinRowViewPortfolio
@@ -186,7 +173,6 @@ struct CoinRowViewPortfolio: View {
 
     var body: some View {
         HStack {
-            // Coin Image and Symbol
             AsyncImage(url: URL(string: coin.image)) { image in
                 image
                     .resizable()
@@ -203,9 +189,8 @@ struct CoinRowViewPortfolio: View {
 
             Spacer()
 
-            // Holdings Column in CoinRowViewPortfolio
             VStack(alignment: .trailing, spacing: 2) {
-                Text("$\(coin.currentHoldingsValue.formatLargeNumber())") // Add $ here
+                Text("$\(coin.currentHoldingsValue.formatLargeNumber())")
                     .font(.headline)
                     .foregroundColor(.white)
                 Text("\(coin.currentHoldings ?? 0, specifier: "%.2f")")
@@ -214,9 +199,8 @@ struct CoinRowViewPortfolio: View {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
 
-            // Prices Column in CoinRowViewPortfolio
             VStack(alignment: .trailing, spacing: 2) {
-                Text("$\(coin.current_price, specifier: "%.2f")") // Add $ here
+                Text("$\(coin.current_price, specifier: "%.2f")")
                     .font(.headline)
                     .foregroundColor(.white)
                 Text("\(coin.price_change_percentage_24h, specifier: "%.2f")%")
@@ -224,18 +208,15 @@ struct CoinRowViewPortfolio: View {
                     .font(.subheadline)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
-
-
         }
         .padding(.vertical, 8)
     }
 }
 
-// PortfolioStatView Component
 struct PortfolioStatView: View {
     var title: String
     var value: String
-    var isCurrency: Bool = false // Add a flag to specify if the value represents a currency
+    var isCurrency: Bool = false
     var percentageChange: String?
 
     var body: some View {
@@ -244,9 +225,12 @@ struct PortfolioStatView: View {
                 .foregroundColor(.white)
                 .font(.system(size: 14, weight: .medium))
 
-            Text("\(isCurrency ? "$" : "")\(value)") // Conditionally add the $
+            // Ensure only one dollar sign
+            Text(isCurrency ? "\(value.contains("$") ? value : "$\(value)")" : value)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
+                .lineLimit(1) // Prevents wrapping
+                .minimumScaleFactor(0.8) // Adjusts the text size if needed
 
             if let percentageChange = percentageChange {
                 Text(percentageChange)
@@ -258,6 +242,7 @@ struct PortfolioStatView: View {
         .frame(maxWidth: .infinity)
     }
 }
+
 
 
 extension Double {
@@ -284,24 +269,4 @@ extension Double {
             return String(format: "%.0f", self)
         }
     }
-}
-
-extension CryptoViewModel {
-    var calculatePortfolioValue: Double {
-        return portfolioCoins.reduce(0) { $0 + (($1.currentHoldings ?? 0) * $1.current_price) }
-    }
-
-    var calculate24hrVolume: Double {
-        return portfolioCoins.reduce(0) { $0 + ($1.total_volume * ($1.currentHoldings ?? 0)) }
-    }
-
-    func deleteCoin(_ coin: CoinGeckoCoin) {
-        if let index = portfolioCoins.firstIndex(where: { $0.id == coin.id }) {
-            portfolioCoins.remove(at: index)
-        }
-    }
-}
-
-#Preview {
-    PortfolioView(viewModel: CryptoViewModel())
 }
