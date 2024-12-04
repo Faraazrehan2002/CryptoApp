@@ -71,7 +71,6 @@ struct CryptoDetailView: View {
         isLandscape = UIDevice.current.orientation.isLandscape
     }
 
-    // MARK: - Header Section
     private var header: some View {
         HStack {
             Button(action: {
@@ -102,12 +101,11 @@ struct CryptoDetailView: View {
         .padding(.horizontal)
     }
 
-    // MARK: - Chart Section with Background and No Labels
     private var chart: some View {
         VStack {
             Chart {
                 ForEach(Array(viewModel.coin.sparkline_in_7d.price.enumerated()), id: \.offset) { index, value in
-                    let color: Color = (viewModel.coin.sparkline_in_7d.price.last ?? 0) >= (viewModel.coin.sparkline_in_7d.price.first ?? 0) ? .green : .red
+                    let color: Color = (viewModel.coin.price_change_percentage_24h >= 0) ? .green : .red
                     LineMark(
                         x: .value("Time", index),
                         y: .value("Price", value)
@@ -118,12 +116,6 @@ struct CryptoDetailView: View {
             }
             .chartXScale(domain: xAxisRange)
             .chartYScale(domain: yAxisRange)
-            .chartXAxis {
-                AxisMarks { _ in }
-            }
-            .chartYAxis { 
-                AxisMarks { _ in }
-            }
             .chartPlotStyle { plotArea in
                 plotArea
                     .background(Color(hex: "#0E2433"))
@@ -143,7 +135,6 @@ struct CryptoDetailView: View {
         }
     }
 
-    // MARK: - Overview Section
     private var overview: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Overview")
@@ -163,7 +154,6 @@ struct CryptoDetailView: View {
         }
     }
 
-    // MARK: - Stats Section
     private var stats: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 20) {
@@ -172,7 +162,6 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2f", viewModel.coin.current_price))",
                     change: viewModel.coin.price_change_percentage_24h
                 )
-                .padding()
                 Spacer()
                 StatRow(
                     title: "Market Cap",
@@ -186,19 +175,16 @@ struct CryptoDetailView: View {
                     value: "\(viewModel.coin.rank)",
                     change: nil
                 )
-                .padding()
                 Spacer()
                 StatRow(
                     title: "Volume",
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
-                .padding(.horizontal, 15)
             }
         }
     }
 
-    // MARK: - Axis Ranges
     var yAxisRange: ClosedRange<Double> {
         let minValue = viewModel.coin.sparkline_in_7d.price.min() ?? 0
         let maxValue = viewModel.coin.sparkline_in_7d.price.max() ?? 1
@@ -212,20 +198,25 @@ struct CryptoDetailView: View {
     }
 }
 
-// MARK: - FullOverviewView
+
+import SwiftUI
+
 struct FullOverviewView: View {
     let overview: String
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         ZStack {
+            // Background Gradient
             LinearGradient(
                 gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
+
             VStack(alignment: .leading, spacing: 16) {
+                // Close Button
                 HStack {
                     Button(action: { presentationMode.wrappedValue.dismiss() }) {
                         HStack {
@@ -239,24 +230,111 @@ struct FullOverviewView: View {
                 }
                 .padding()
 
+                // Centered Title
                 Text("Overview")
                     .font(.title)
                     .foregroundColor(.white)
                     .bold()
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 8) // Add spacing below the title
 
+                // Content with Links
                 ScrollView {
-                    Text(overview)
-                        .font(.body)
-                        .foregroundColor(.white)
-                        .padding()
+                    VStack(alignment: .leading, spacing: 4) { // Reduced spacing
+                        ForEach(parseHTMLToTextAndLinks(htmlString: overview), id: \.id) { part in
+                            if part.isLink {
+                                Text(part.text)
+                                    .foregroundColor(.blue)
+                                    .underline(false)
+                                    .onTapGesture {
+                                        if let url = part.url {
+                                            UIApplication.shared.open(url)
+                                        }
+                                    }
+                            } else {
+                                Text(part.text)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .padding()
                 }
             }
             .padding(.top)
         }
     }
+
+    // Parse HTML into text and links
+    private func parseHTMLToTextAndLinks(htmlString: String) -> [ParsedContent] {
+        var result: [ParsedContent] = []
+
+        // Regular expression to match links
+        let regex = try? NSRegularExpression(pattern: #"<a href="([^"]+)">([^<]+)</a>"#, options: [])
+        let range = NSRange(location: 0, length: htmlString.utf16.count)
+
+        var lastIndex = htmlString.startIndex
+
+        regex?.enumerateMatches(in: htmlString, options: [], range: range) { match, _, _ in
+            guard let match = match else { return }
+
+            if let hrefRange = Range(match.range(at: 1), in: htmlString),
+               let textRange = Range(match.range(at: 2), in: htmlString) {
+                // Append plain text before the hyperlink
+                let preText = String(htmlString[lastIndex..<match.range.lowerBound(in: htmlString)])
+                if !preText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    result.append(ParsedContent(text: preText, isLink: false))
+                }
+
+                // Append hyperlink text with its URL
+                let linkText = String(htmlString[textRange])
+                if let url = URL(string: String(htmlString[hrefRange])) {
+                    result.append(ParsedContent(text: linkText, isLink: true, url: url))
+                }
+
+                // Update lastIndex to after the match
+                if let fullRange = Range(match.range, in: htmlString) {
+                    lastIndex = fullRange.upperBound
+                }
+            }
+        }
+
+        // Add remaining plain text
+        if lastIndex < htmlString.endIndex {
+            let remainingText = String(htmlString[lastIndex...])
+            if !remainingText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                result.append(ParsedContent(text: remainingText, isLink: false))
+            }
+        }
+
+        return result
+    }
 }
 
-// MARK: - StatRow Component
+// Struct for parsed content
+private struct ParsedContent: Identifiable {
+    let id = UUID()
+    let text: String
+    let isLink: Bool
+    let url: URL?
+    
+    init(text: String, isLink: Bool, url: URL? = nil) {
+        self.text = text
+        self.isLink = isLink
+        self.url = url
+    }
+}
+
+private extension NSRange {
+    func lowerBound(in string: String) -> String.Index {
+        return String.Index(utf16Offset: self.lowerBound, in: string)
+    }
+}
+
+
+
+
+
+
 struct StatRow: View {
     let title: String
     let value: String
@@ -280,7 +358,6 @@ struct StatRow: View {
     }
 }
 
-// MARK: - FullScreenChartView
 struct FullScreenChartView: View {
     let sparkline: [Double]
 
