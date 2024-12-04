@@ -101,7 +101,7 @@ struct PortfolioView: View {
                 title: "Portfolio Value",
                 value: viewModel.portfolioValue,
                 isCurrency: true,
-                percentageChange: "2.30"
+                percentageChange: calculatePortfolioChange()
             )
             PortfolioStatView(
                 title: "24hr Volume",
@@ -197,6 +197,21 @@ struct PortfolioView: View {
     private func updateOrientation(with size: CGSize) {
         isLandscape = size.width > size.height
     }
+
+    private func calculatePortfolioChange() -> String? {
+        let coinsWithHoldings = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
+
+        guard !coinsWithHoldings.isEmpty else {
+            return nil // Return nil if no coins in the portfolio
+        }
+
+        let totalValue = coinsWithHoldings.reduce(0.0) { $0 + ($1.currentHoldingsValue) }
+        let weightedChange = coinsWithHoldings.reduce(0.0) { (sum, coin) in
+            sum + (coin.currentHoldingsValue / totalValue) * (coin.price_change_percentage_24h)
+        }
+
+        return String(format: "%.2f%%", weightedChange) // Return the weighted average as a percentage
+    }
 }
 
 // MARK: - CoinRowViewPortfolio
@@ -218,7 +233,6 @@ struct CoinRowViewPortfolio: View {
             Text(coin.symbol.uppercased())
                 .font(Font.custom("Poppins-Bold", size: 16))
                 .foregroundColor(.white)
-                .font(.headline)
 
             Spacer()
 
@@ -259,7 +273,6 @@ struct PortfolioStatView: View {
                 .foregroundColor(.white)
                 .font(Font.custom("Poppins-Medium", size: 14))
 
-            // Ensure only one dollar sign
             Text(isCurrency ? "\(value.contains("$") ? value : "$\(value)")" : value)
                 .font(Font.custom("Poppins-Bold", size: 16))
                 .foregroundColor(.white)
