@@ -19,7 +19,7 @@ struct SettingsView: View {
             VStack {
                 // Headline
                 Text("About")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(Font.custom("Poppins-Bold", size: 32))
                     .foregroundColor(.white)
                     .padding(.top, 10)
 
@@ -84,14 +84,14 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("About the App")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(Font.custom("Poppins-Bold", size: 24))
                     .foregroundColor(.white)
 
                 Text("""
                 The app provides an efficient method for users to track and invest in cryptocurrencies by offering real-time updates on market trends. It features a portfolio manager for overseeing investments and integrates live data from APIs for up-to-date market insights.
                 """)
                     .foregroundColor(.white)
-                    .font(.custom("Poppins-Regular", size: 16))
+                    .font(.custom("Poppins-Medium", size: 16))
                     .lineSpacing(4)
             }
         }
@@ -107,37 +107,37 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("About Us")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(Font.custom("Poppins-Bold", size: 24))
                     .foregroundColor(.white)
 
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Faraaz Rehan Junaidi Mohammed")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(Font.custom("Poppins-Bold", size: 16))
                             .foregroundColor(.white)
                         Text("Masters in Computer Science")
-                            .font(.custom("Poppins-Regular", size: 16))
+                            .font(Font.custom("Poppins-Medium", size: 16))
                             .foregroundColor(.white)
 
                         Link(destination: URL(string: "https://www.linkedin.com/in/faraaz-rehan-junaidi-mohammed-797653191")!) {
                             Text("LinkedIn Profile")
                                 .foregroundColor(.blue)
-                                .font(.custom("Poppins-Regular", size: 12))
+                                .font(Font.custom("Poppins-Medium", size: 12))
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Andrew Guzman")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(Font.custom("Poppins-Bold", size: 18))
                             .foregroundColor(.white)
                         Text("Bachelors in Computer Science")
-                            .font(.custom("Poppins-Regular", size: 16))
+                            .font(Font.custom("Poppins-Medium", size: 16))
                             .foregroundColor(.white)
 
                         Link(destination: URL(string: "https://www.linkedin.com/in/andrew-guzman-50a5b516a")!) {
                             Text("LinkedIn Profile")
                                 .foregroundColor(.blue)
-                                .font(.custom("Poppins-Regular", size: 12))
+                                .font(Font.custom("Poppins-Medium", size: 12))
                         }
                     }
                 }
