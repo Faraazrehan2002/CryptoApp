@@ -5,6 +5,7 @@ struct PortfolioView: View {
 
     @State private var searchText = ""
     @State private var isPriceSortAscending = true
+    @State private var isLandscape = false
 
     var filteredCoins: [CoinGeckoCoin] {
         let addedCoins = viewModel.portfolioCoins.filter { $0.currentHoldings != nil && $0.currentHoldings! > 0 }
@@ -24,23 +25,48 @@ struct PortfolioView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+            GeometryReader { geometry in
+                ZStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
 
-                VStack(spacing: 10) {
-                    combinedHeaderAndTitle
-                    stats
-                    searchBar
-                    sortingHeader
-                    coinList
+                    if isLandscape {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                combinedHeaderAndTitle
+                                stats
+                                searchBar
+                                sortingHeader
+                                ForEach(filteredCoins, id: \.id) { coin in
+                                    CoinRowViewPortfolio(coin: coin)
+                                        .padding(.horizontal)
+                                        .background(Color.clear)
+                                }
+                            }
+                            .padding(.top, 10)
+                        }
+                    } else {
+                        VStack(spacing: 10) {
+                            combinedHeaderAndTitle
+                            stats
+                            searchBar
+                            sortingHeader
+                            coinList
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                    }
                 }
-                .padding(.horizontal)
-                .padding(.top, 10)
+                .onAppear {
+                    updateOrientation(with: geometry.size)
+                }
+                .onChange(of: geometry.size) { newSize in
+                    updateOrientation(with: newSize)
+                }
             }
         }
         .tabItem {
@@ -60,8 +86,7 @@ struct PortfolioView: View {
             Spacer()
 
             Text("Portfolio")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+                .font(Font.custom("Poppins-Bold", size: 36))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.trailing, 30)
@@ -89,6 +114,7 @@ struct PortfolioView: View {
                 isCurrency: false
             )
         }
+        .font(Font.custom("Poppins-Medium", size: 18))
         .padding(.horizontal, 24)
         .multilineTextAlignment(.center)
         .padding(.top, 10)
@@ -103,10 +129,12 @@ struct PortfolioView: View {
             ZStack(alignment: .leading) {
                 if searchText.isEmpty {
                     Text("Search")
+                        .font(Font.custom("Poppins-Medium", size: 16))
                         .foregroundColor(.black)
                         .padding(.leading, 5)
                 }
                 TextField("", text: $searchText)
+                    .font(Font.custom("Poppins-Medium", size: 16))
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                     .foregroundColor(.black)
@@ -121,21 +149,21 @@ struct PortfolioView: View {
     private var sortingHeader: some View {
         HStack {
             Text("Coins")
-                .font(.system(size: 18, weight: .bold))
+                .font(Font.custom("Poppins-Bold", size: 18))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
 
             Text("Holdings")
-                .font(.system(size: 18, weight: .bold))
+                .font(Font.custom("Poppins-Bold", size: 18))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Button(action: { isPriceSortAscending.toggle() }) {
                 HStack {
                     Text("Prices")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(Font.custom("Poppins-Bold", size: 18))
                         .foregroundColor(.white)
                     Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
                         .foregroundColor(.white)
@@ -165,9 +193,13 @@ struct PortfolioView: View {
         .listStyle(PlainListStyle())
         .background(Color.clear)
     }
+
+    private func updateOrientation(with size: CGSize) {
+        isLandscape = size.width > size.height
+    }
 }
 
-// CoinRowViewPortfolio
+// MARK: - CoinRowViewPortfolio
 struct CoinRowViewPortfolio: View {
     var coin: CoinGeckoCoin
 
@@ -184,6 +216,7 @@ struct CoinRowViewPortfolio: View {
             }
 
             Text(coin.symbol.uppercased())
+                .font(Font.custom("Poppins-Bold", size: 16))
                 .foregroundColor(.white)
                 .font(.headline)
 
@@ -191,21 +224,21 @@ struct CoinRowViewPortfolio: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("$\(coin.currentHoldingsValue.formatLargeNumber())")
-                    .font(.headline)
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(.white)
                 Text("\(coin.currentHoldings ?? 0, specifier: "%.2f")")
-                    .font(.subheadline)
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(.white.opacity(0.7))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("$\(coin.current_price, specifier: "%.2f")")
-                    .font(.headline)
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(.white)
                 Text("\(coin.price_change_percentage_24h, specifier: "%.2f")%")
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(coin.price_change_percentage_24h < 0 ? .red : .green)
-                    .font(.subheadline)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -213,6 +246,7 @@ struct CoinRowViewPortfolio: View {
     }
 }
 
+// MARK: - PortfolioStatView
 struct PortfolioStatView: View {
     var title: String
     var value: String
@@ -223,18 +257,18 @@ struct PortfolioStatView: View {
         VStack(spacing: 8) {
             Text(title)
                 .foregroundColor(.white)
-                .font(.system(size: 14, weight: .medium))
+                .font(Font.custom("Poppins-Medium", size: 14))
 
             // Ensure only one dollar sign
             Text(isCurrency ? "\(value.contains("$") ? value : "$\(value)")" : value)
-                .font(.system(size: 16, weight: .bold))
+                .font(Font.custom("Poppins-Bold", size: 16))
                 .foregroundColor(.white)
-                .lineLimit(1) // Prevents wrapping
-                .minimumScaleFactor(0.8) // Adjusts the text size if needed
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
             if let percentageChange = percentageChange {
                 Text(percentageChange)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(Font.custom("Poppins-Bold", size: 14))
                     .foregroundColor(percentageChange.contains("-") ? .red : .green)
             }
         }
@@ -242,8 +276,6 @@ struct PortfolioStatView: View {
         .frame(maxWidth: .infinity)
     }
 }
-
-
 
 extension Double {
     func formatLargeNumber() -> String {
@@ -270,3 +302,8 @@ extension Double {
         }
     }
 }
+
+#Preview {
+    PortfolioView(viewModel: CryptoViewModel())
+}
+
