@@ -5,7 +5,6 @@ struct CryptoDetailView: View {
     let viewModel: CryptoDetailViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var scale: CGFloat = 1.0
-    @State private var isFullScreenChartPresented = false
     @State private var isFullOverviewPresented = false
     @State private var isLandscape: Bool = false
 
@@ -61,9 +60,6 @@ struct CryptoDetailView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $isFullOverviewPresented) {
             FullOverviewView(overview: viewModel.coinOverview)
-        }
-        .sheet(isPresented: $isFullScreenChartPresented) {
-            FullScreenChartView(sparkline: viewModel.coin.sparkline_in_7d.price)
         }
     }
 
@@ -121,16 +117,7 @@ struct CryptoDetailView: View {
                     .background(Color(hex: "#0E2433"))
                     .border(Color.gray.opacity(0.2), width: 1)
             }
-            .frame(height: 250 * scale)
-            .gesture(
-                MagnificationGesture()
-                    .onChanged { value in
-                        scale = min(max(1.0, value), 3.0)
-                    }
-            )
-            .onTapGesture {
-                isFullScreenChartPresented.toggle()
-            }
+            .frame(height: 250)
             .padding(.horizontal)
         }
     }
@@ -198,8 +185,7 @@ struct CryptoDetailView: View {
     }
 }
 
-
-import SwiftUI
+// MARK: - FullOverviewView
 
 struct FullOverviewView: View {
     let overview: String
@@ -215,7 +201,7 @@ struct FullOverviewView: View {
             )
             .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack {
                 // Close Button
                 HStack {
                     Button(action: { presentationMode.wrappedValue.dismiss() }) {
@@ -232,83 +218,61 @@ struct FullOverviewView: View {
 
                 // Centered Title
                 Text("Overview")
-                    .font(.title)
+                    .font(.system(size: 32, weight: .bold)) // Explicit title font size
                     .foregroundColor(.white)
-                    .bold()
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.bottom, 8) // Add spacing below the title
+                    .padding(.bottom, 16)
 
                 // Content with Links
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 4) { // Reduced spacing
-                        ForEach(parseHTMLToTextAndLinks(htmlString: overview), id: \.id) { part in
-                            if part.isLink {
-                                Text(part.text)
-                                    .foregroundColor(.blue)
-                                    .underline(false)
-                                    .onTapGesture {
-                                        if let url = part.url {
-                                            UIApplication.shared.open(url)
-                                        }
-                                    }
-                            } else {
-                                Text(part.text)
-                                    .foregroundColor(.white)
-                            }
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let attributedText = parseHTMLToAttributedString(from: overview) {
+                            Text(attributedText)
+                                .lineSpacing(6) // Adjust line spacing
+                                .padding()
+                        } else {
+                            Text("Error parsing content.")
+                                .foregroundColor(.red)
+                                .padding()
                         }
                     }
-                    .padding()
                 }
             }
-            .padding(.top)
         }
     }
 
-    // Parse HTML into text and links
-    private func parseHTMLToTextAndLinks(htmlString: String) -> [ParsedContent] {
-        var result: [ParsedContent] = []
+    // Function to parse HTML and apply font size and custom link color
+    private func parseHTMLToAttributedString(from html: String) -> AttributedString? {
+        guard let data = html.data(using: .utf8) else { return nil }
 
-        // Regular expression to match links
-        let regex = try? NSRegularExpression(pattern: #"<a href="([^"]+)">([^<]+)</a>"#, options: [])
-        let range = NSRange(location: 0, length: htmlString.utf16.count)
+        do {
+            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue
+            ]
 
-        var lastIndex = htmlString.startIndex
+            let nsAttributedString = try NSMutableAttributedString(data: data, options: options, documentAttributes: nil)
 
-        regex?.enumerateMatches(in: htmlString, options: [], range: range) { match, _, _ in
-            guard let match = match else { return }
+            // Apply explicit font and color styles
+            nsAttributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: nsAttributedString.length)) // Font size
+            nsAttributedString.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(location: 0, length: nsAttributedString.length)) // Default text color
 
-            if let hrefRange = Range(match.range(at: 1), in: htmlString),
-               let textRange = Range(match.range(at: 2), in: htmlString) {
-                // Append plain text before the hyperlink
-                let preText = String(htmlString[lastIndex..<match.range.lowerBound(in: htmlString)])
-                if !preText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    result.append(ParsedContent(text: preText, isLink: false))
-                }
-
-                // Append hyperlink text with its URL
-                let linkText = String(htmlString[textRange])
-                if let url = URL(string: String(htmlString[hrefRange])) {
-                    result.append(ParsedContent(text: linkText, isLink: true, url: url))
-                }
-
-                // Update lastIndex to after the match
-                if let fullRange = Range(match.range, in: htmlString) {
-                    lastIndex = fullRange.upperBound
+            // Apply custom blue color for links
+            let customBlue = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0) // Brighter, contrasting blue
+            nsAttributedString.enumerateAttribute(.link, in: NSRange(location: 0, length: nsAttributedString.length), options: []) { value, range, _ in
+                if value != nil {
+                    nsAttributedString.addAttribute(.foregroundColor, value: customBlue, range: range) // Link color
                 }
             }
-        }
 
-        // Add remaining plain text
-        if lastIndex < htmlString.endIndex {
-            let remainingText = String(htmlString[lastIndex...])
-            if !remainingText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                result.append(ParsedContent(text: remainingText, isLink: false))
-            }
+            return AttributedString(nsAttributedString)
+        } catch {
+            print("Error parsing HTML: \(error)")
+            return nil
         }
-
-        return result
     }
 }
+
 
 // Struct for parsed content
 private struct ParsedContent: Identifiable {
@@ -316,7 +280,7 @@ private struct ParsedContent: Identifiable {
     let text: String
     let isLink: Bool
     let url: URL?
-    
+
     init(text: String, isLink: Bool, url: URL? = nil) {
         self.text = text
         self.isLink = isLink
@@ -329,6 +293,7 @@ private extension NSRange {
         return String.Index(utf16Offset: self.lowerBound, in: string)
     }
 }
+
 
 
 

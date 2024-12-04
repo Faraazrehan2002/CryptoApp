@@ -19,7 +19,7 @@ struct SettingsView: View {
             VStack {
                 // Headline
                 Text("Settings")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.top, 10)
 
