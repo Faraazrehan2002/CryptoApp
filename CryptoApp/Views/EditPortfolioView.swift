@@ -104,8 +104,7 @@ struct EditPortfolioView: View {
     // Title
     private var title: some View {
         Text("Edit Portfolio")
-            .font(.largeTitle)
-            .fontWeight(.bold)
+            .font(Font.custom("Poppins-Bold", size: 32))
             .foregroundColor(.white)
             .padding(.top, isLandscape ? 0 : 10) // Adjust padding for portrait/landscape
     }
@@ -120,9 +119,11 @@ struct EditPortfolioView: View {
             ZStack(alignment: .leading) {
                 if searchText.isEmpty {
                     Text("Search")
+                        .font(Font.custom("Poppins-Medium", size: 16))
                         .foregroundColor(.black)
                 }
                 TextField("", text: $searchText)
+                    .font(Font.custom("Poppins-Medium", size: 16))
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                     .foregroundColor(.black)
@@ -153,13 +154,13 @@ struct EditPortfolioView: View {
                         }
 
                         Text(coin.symbol.uppercased())
-                            .font(.headline)
+                            .font(Font.custom("Poppins-Bold", size: 16))
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
 
                         Text(coin.name)
-                            .font(.caption)
+                            .font(Font.custom("Poppins-Medium", size: 16))
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                             .multilineTextAlignment(.center)
@@ -192,12 +193,12 @@ struct EditPortfolioView: View {
         VStack(spacing: 10) {
             HStack {
                 Text("Current Price of \(selectedCoin?.symbol.uppercased() ?? ""):")
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(.white)
-                    .font(.headline)
                 Spacer()
                 Text(selectedCoin?.current_price.asCurrencyWith6Decimals() ?? "")
+                    .font(Font.custom("Poppins-Medium", size: 16))
                     .foregroundColor(.white)
-                    .font(.headline)
             }
             .padding()
 
@@ -207,24 +208,24 @@ struct EditPortfolioView: View {
 
             HStack {
                 Text("Amount Holding:")
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(.white)
-                    .font(.headline)
                 Spacer()
                 ZStack(alignment: .trailing) {
                     if quantityText.isEmpty {
                         Text("Enter amount") // Adjusted placeholder text
                             .foregroundColor(Color.white.opacity(0.6)) // Contrasting color for visibility
-                            .font(.headline)
+                            .font(Font.custom("Poppins-Medium", size: 16))
                             .padding(.trailing, 10)
                     }
                     TextField("", text: $quantityText)
+                        .font(Font.custom("Poppins-Medium", size: 16))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.trailing)
                         .padding(10)
                         .background(Color.white.opacity(0.2))
                         .cornerRadius(10)
                         .keyboardType(.decimalPad)
-                        .font(.headline)
                         .onTapGesture {
                             if quantityText == "0.0" { // Clear placeholder when tapped
                                 quantityText = ""
@@ -241,12 +242,12 @@ struct EditPortfolioView: View {
 
             HStack {
                 Text("Current Value:")
+                    .font(Font.custom("Poppins-Bold", size: 16))
                     .foregroundColor(.white)
-                    .font(.headline)
                 Spacer()
                 Text(getCurrentValue().asCurrencyWith2Decimals())
+                    .font(Font.custom("Poppins-Medium", size: 16))
                     .foregroundColor(.white)
-                    .font(.headline)
             }
             .padding()
         }
