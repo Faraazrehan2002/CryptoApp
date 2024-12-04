@@ -18,7 +18,7 @@ struct SettingsView: View {
 
             VStack {
                 // Headline
-                Text("Settings")
+                Text("About")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.top, 10)
@@ -65,8 +65,8 @@ struct SettingsView: View {
             )
         }
         .tabItem {
-            Image(systemName: "gear")
-            Text("Settings")
+            Image(systemName: "person.circle")
+            Text("About")
         }
     }
 
