@@ -76,13 +76,14 @@ struct CryptoDetailView: View {
                     Image(systemName: "chevron.left")
                         .foregroundColor(.white)
                     Text("Back")
+                        .font(Font.custom("Poppins-Bold", size: 14))
                         .foregroundColor(.white)
                 }
             }
             Spacer()
             HStack {
                 Text(viewModel.coin.symbol.uppercased())
-                    .font(.custom("Poppins-Bold", size: 24))
+                    .font(Font.custom("Poppins-Bold", size: 24))
                     .foregroundColor(.white)
                 AsyncImage(url: URL(string: viewModel.coin.image)) { image in
                     image
@@ -125,16 +126,16 @@ struct CryptoDetailView: View {
     private var overview: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Overview")
-                .font(.custom("Poppins-Bold", size: 20))
+                .font(Font.custom("Poppins-Bold", size: 20))
                 .foregroundColor(.white)
             Text(viewModel.coinOverview)
-                .font(.custom("Poppins-Regular", size: 16))
+                .font(Font.custom("Poppins-Medium", size: 16))
                 .foregroundColor(.white)
                 .lineLimit(isLandscape ? nil : 4)
             if !isLandscape && viewModel.coinOverview.count > 200 {
                 Button(action: { isFullOverviewPresented.toggle() }) {
                     Text("Read more...")
-                        .font(.custom("Poppins-Regular", size: 16))
+                        .font(Font.custom("Poppins-Medium", size: 16))
                         .foregroundColor(.blue)
                 }
             }
@@ -168,6 +169,7 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
+                .padding(.horizontal, 40)
             }
         }
     }
@@ -209,6 +211,7 @@ struct FullOverviewView: View {
                             Image(systemName: "chevron.left")
                                 .foregroundColor(.white)
                             Text("Close")
+                                .font(Font.custom("Poppins-Medium", size: 16))
                                 .foregroundColor(.white)
                         }
                     }
@@ -218,7 +221,7 @@ struct FullOverviewView: View {
 
                 // Centered Title
                 Text("Overview")
-                    .font(.system(size: 32, weight: .bold)) // Explicit title font size
+                    .font(Font.custom("Poppins-Bold", size: 32))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.bottom, 16)
@@ -228,6 +231,7 @@ struct FullOverviewView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         if let attributedText = parseHTMLToAttributedString(from: overview) {
                             Text(attributedText)
+                                .font(Font.custom("Poppins-Medium", size: 26))
                                 .lineSpacing(6) // Adjust line spacing
                                 .padding()
                         } else {
@@ -308,14 +312,15 @@ struct StatRow: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
+                .font(Font.custom("Poppins-Bold", size: 20))
                 .foregroundColor(.white)
-                .font(.headline)
             Text(value)
+                .font(Font.custom("Poppins-Medium", size: 16))
                 .foregroundColor(.white)
-                .font(.title3)
                 .bold()
             if let change = change {
                 Text("\(String(format: "%.2f", change))%")
+                    .font(Font.custom("Poppins-Medium", size: 14))
                     .foregroundColor(change < 0 ? .red : .green)
                     .font(.footnote)
             }
@@ -335,6 +340,7 @@ struct FullScreenChartView: View {
                     Spacer()
                     Button(action: { }) {
                         Text("Close")
+                            .font(Font.custom("Poppins-Medium", size: 24))
                             .foregroundColor(.white)
                             .padding()
                     }
