@@ -29,111 +29,121 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(hex: "#851439"),
-                        Color(hex: "#151E52")
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            NavigationView {
+                ZStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(hex: "#851439"),
+                            Color(hex: "#151E52")
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
 
-                VStack(spacing: 20) {
-                    // Title
-                    Text("Live Prices")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.top, 20)
+                    if isLandscape {
+                        // Landscape Mode: Vertical Scroll Layout
+                        ScrollView {
+                            VStack(spacing: 20) {
+                                title
+                                stats
+                                searchBar
+                                HStack {
+                                    Text("Coins")
+                                        .font(Font.custom("Poppins-Bold", size: 18))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Spacer()
+                                    Button(action: {
+                                        isPriceSortAscending.toggle()
+                                    }) {
+                                        HStack {
+                                            Text("Prices")
+                                                .font(Font.custom("Poppins-Bold", size: 18))
+                                                .foregroundColor(.white)
+                                            Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                }
+                                .padding(.horizontal)
 
-                    // Stats Section
-                    stats
-
-                    // Search Bar
-                    searchBar
-
-                    // Heading and Sorting
-                    HStack {
-                        Text("Coins")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Spacer()
-
-                        Button(action: {
-                            isPriceSortAscending.toggle()
-                        }) {
+                                coinList
+                            }
+                            .padding(.horizontal)
+                        }
+                    } else {
+                        // Portrait Mode: Original Layout
+                        VStack(spacing: 20) {
+                            title
+                            stats
+                            searchBar
                             HStack {
-                                Text("Prices")
-                                    .font(.system(size: 18, weight: .bold))
+                                Text("Coins")
+                                    .font(Font.custom("Poppins-Bold", size: 18))
                                     .foregroundColor(.white)
-                                Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
-                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Spacer()
+                                Button(action: {
+                                    isPriceSortAscending.toggle()
+                                }) {
+                                    HStack {
+                                        Text("Prices")
+                                            .font(Font.custom("Poppins-Bold", size: 18))
+                                            .foregroundColor(.white)
+                                        Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .trailing)
                             }
+                            .padding(.horizontal)
+
+                            coinList
+                            Spacer()
                         }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-
-                    // Coin List
-                    coinList
-
-                    Spacer()
                 }
-                .padding(.horizontal)
-            }
-            .gesture(
-                DragGesture()
-                    .onEnded { value in
-                        if value.translation.width > 100 {
-                            withAnimation(.easeInOut) {
-                                navigateToNews = true
+                .gesture(
+                    DragGesture()
+                        .onEnded { value in
+                            if value.translation.width > 100 {
+                                withAnimation(.easeInOut) {
+                                    navigateToNews = true
+                                }
                             }
                         }
-                    }
-            )
-            .background(
-                NavigationLink(
-                    destination: CryptoNewsView()
-                        .transition(.move(edge: .leading)),
-                    isActive: $navigateToNews,
-                    label: { EmptyView() }
                 )
-                .hidden()
-            )
-        }
-        .onAppear {
-            updateOrientation()
-            NotificationCenter.default.addObserver(
-                forName: UIDevice.orientationDidChangeNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                updateOrientation()
+                .background(
+                    NavigationLink(
+                        destination: CryptoNewsView()
+                            .transition(.move(edge: .leading)),
+                        isActive: $navigateToNews,
+                        label: { EmptyView() }
+                    )
+                    .hidden()
+                )
+            }
+            .onAppear {
+                updateOrientation(with: geometry.size)
+            }
+            .onChange(of: geometry.size) { newSize in
+                updateOrientation(with: newSize)
             }
         }
-        .onDisappear {
-            NotificationCenter.default.removeObserver(
-                self,
-                name: UIDevice.orientationDidChangeNotification,
-                object: nil
-            )
-        }
-        .tabItem {
-            Image(systemName: "house")
-            Text("Home")
-        }
     }
 
-    private func updateOrientation() {
-        isLandscape = UIDevice.current.orientation.isLandscape
+    // MARK: - Helper Views
+    private var title: some View {
+        Text("Live Prices")
+            .font(Font.custom("Poppins-Bold", size: 36))
+            .foregroundColor(.white)
+            .padding(.top, isLandscape ? 10 : 20) // Adjust padding based on orientation
     }
 
-    // Stats Section
     private var stats: some View {
         HStack(alignment: .top, spacing: 36) {
             StatView(
@@ -156,7 +166,6 @@ struct HomeView: View {
         .multilineTextAlignment(.center)
     }
 
-    // Search Bar
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
@@ -166,6 +175,7 @@ struct HomeView: View {
             ZStack(alignment: .leading) {
                 if searchText.isEmpty {
                     Text("Search")
+                        .font(Font.custom("Poppins-Medium", size: 16))
                         .foregroundColor(.black)
                         .padding(.leading, 5)
                 }
@@ -184,7 +194,6 @@ struct HomeView: View {
         .padding(.horizontal, 6)
     }
 
-    // Coin List
     private var coinList: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -201,70 +210,80 @@ struct HomeView: View {
         }
         .padding(.horizontal)
     }
-}
 
-// CoinRowView
-struct CoinRowView: View {
-    var coin: CoinGeckoCoin
+    private func updateOrientation(with size: CGSize) {
+        isLandscape = size.width > size.height
+    }
+    
+    struct StatView: View {
+        var title: String
+        var value: String
+        var percentageChange: String?
 
-    var body: some View {
-        HStack {
-            AsyncImage(url: URL(string: coin.image)) { image in
-                image
-                    .resizable()
-                    .frame(width: 30, height: 30)
-                    .clipShape(Circle())
-            } placeholder: {
-                ProgressView()
-                    .frame(width: 30, height: 30)
-            }
+        var body: some View {
+            VStack(spacing: 8) {
+                // Title
+                Text(title)
+                    .font(Font.custom("Poppins-Medium", size: 14))
+                    .foregroundColor(.white)
 
-            Text(coin.symbol.uppercased())
-                .foregroundColor(.white)
-                .font(.system(size: 16, weight: .bold))
-
-            Spacer()
-
-            VStack(alignment: .trailing) {
-                Text("$\(coin.current_price, specifier: "%.2f")")
+                // Value
+                Text(value)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
-                Text("\(coin.price_change_percentage_24h, specifier: "%.2f")%")
-                    .foregroundColor(coin.price_change_percentage_24h < 0 ? .red : .green)
-                    .font(.system(size: 14, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+
+                // Percentage Change (if provided)
+                if let percentageChange = percentageChange {
+                    Text(percentageChange)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(percentageChange.contains("-") ? .red : .green)
+                }
             }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 8)
     }
-}
 
-// StatView
-struct StatView: View {
-    var title: String
-    var value: String
-    var percentageChange: String?
+    struct CoinRowView: View {
+        var coin: CoinGeckoCoin
 
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .foregroundColor(.white)
-                .font(.system(size: 14, weight: .medium))
+        var body: some View {
+            HStack {
+                // Coin Image
+                AsyncImage(url: URL(string: coin.image)) { image in
+                    image
+                        .resizable()
+                        .frame(width: 30, height: 30)
+                        .clipShape(Circle())
+                } placeholder: {
+                    ProgressView()
+                        .frame(width: 30, height: 30)
+                }
 
-            Text(value)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(1) // Ensures the text stays on one line
-                .minimumScaleFactor(0.5) // Scales down if the text is too long
+                // Coin Symbol
+                Text(coin.symbol.uppercased())
+                    .foregroundColor(.white)
+                    .font(Font.custom("Poppins-Bold", size: 16))
 
-            if let percentageChange = percentageChange {
-                Text(percentageChange)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(percentageChange.contains("-") ? .red : .green)
+                Spacer()
+
+                // Coin Price and Percentage Change
+                VStack(alignment: .trailing) {
+                    Text("$\(coin.current_price, specifier: "%.2f")")
+                        .font(Font.custom("Poppins-Bold", size: 16))
+                        .foregroundColor(.white)
+                    Text("\(coin.price_change_percentage_24h, specifier: "%.2f")%")
+                        .foregroundColor(coin.price_change_percentage_24h < 0 ? .red : .green)
+                        .font(Font.custom("Poppins-Bold", size: 14))
+                }
             }
+            .padding(.vertical, 8)
         }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity)
     }
+
+    
 }
 
 #Preview {
