@@ -29,9 +29,8 @@ struct CryptoNewsView: View {
                             .frame(maxWidth: .infinity)
                             .background(Color.clear)
 
-                        // Content Adjusts Based on Orientation
                         if isLandscape {
-                            // Landscape Mode: Two columns with clickable news cards
+                            // Landscape Mode: Two columns
                             ScrollView {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                                     ForEach(newsService.newsArticles) { article in
@@ -42,16 +41,22 @@ struct CryptoNewsView: View {
                                     }
                                 }
                                 .padding(.horizontal)
-                                .padding(.bottom, 50) // Avoid overlap with bottom tab
                             }
+                            .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 50) // Adjusted height
                         } else {
-                            // Portrait Mode: One column
-                            List(newsService.newsArticles) { article in
-                                newsCard(for: article)
-                                    .listRowBackground(Color.clear) // Transparent row background
+                            // Portrait Mode: Single column
+                            ScrollView {
+                                VStack(spacing: 16) {
+                                    ForEach(newsService.newsArticles) { article in
+                                        Link(destination: URL(string: article.url)!) {
+                                            newsCard(for: article)
+                                        }
+                                        .buttonStyle(PlainButtonStyle()) // Removes button styling
+                                    }
+                                }
+                                .padding(.horizontal)
                             }
-                            .listStyle(PlainListStyle()) // Removes extra list padding
-                            .background(Color.clear) // Makes the list's background transparent
+                            .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 50) // Adjusted height
                         }
                     }
                 }
@@ -108,6 +113,7 @@ struct CryptoNewsView: View {
         isLandscape = size.width > size.height
     }
 }
+
 
 #Preview {
     CryptoNewsView()
