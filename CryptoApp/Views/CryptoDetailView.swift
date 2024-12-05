@@ -20,21 +20,24 @@ struct CryptoDetailView: View {
                 .ignoresSafeArea()
 
                 if isLandscape {
-                    // Scrollable Content in Landscape Mode
+                    // Landscape Layout
                     ScrollView {
                         VStack(spacing: 16) {
                             header
-                            chart
-                            stats
-                            overview
+                            HStack(alignment: .top, spacing: 16) {
+                                chart
+                                    .frame(maxWidth: geometry.size.width * 0.5) // Chart takes 50% of width
+                                stats
+                                    .frame(maxWidth: geometry.size.width * 0.5) // Stats take the remaining 50%
+                            }
+                            overview // Overview is vertically stacked below the chart and stats
+                                .padding(.top, 16)
                         }
                         .padding(.horizontal)
                         .frame(maxWidth: .infinity)
                     }
-                    .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 30) // Adjusted scrollable area height
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + 30) // Keep above TabView
                 } else {
-                    // Portrait Mode
+                    // Portrait Layout
                     VStack(alignment: .leading, spacing: 16) {
                         header
                         chart
@@ -137,15 +140,15 @@ struct CryptoDetailView: View {
             Text(viewModel.coinOverview)
                 .font(Font.custom("Poppins-Medium", size: 16))
                 .foregroundColor(.white)
-                .lineLimit(isLandscape ? nil : 4)
-            if !isLandscape && viewModel.coinOverview.count > 200 {
-                Button(action: { isFullOverviewPresented.toggle() }) {
-                    Text("Read more...")
-                        .font(Font.custom("Poppins-Medium", size: 16))
-                        .foregroundColor(.blue)
-                }
+                .lineLimit(isLandscape ? 3 : 4) // 3 lines in landscape, 4 in portrait
+                .multilineTextAlignment(.leading)
+            Button(action: { isFullOverviewPresented.toggle() }) {
+                Text("Read more...")
+                    .font(Font.custom("Poppins-Medium", size: 16))
+                    .foregroundColor(.blue)
             }
         }
+        .padding(.horizontal)
     }
 
     private var stats: some View {
@@ -175,7 +178,6 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
-                .padding(.horizontal, 40)
             }
         }
     }
@@ -192,8 +194,6 @@ struct CryptoDetailView: View {
         return 0...(count - 1)
     }
 }
-
-
 
 
 // MARK: - FullOverviewView
