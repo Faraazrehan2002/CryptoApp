@@ -36,6 +36,9 @@ struct CryptoDetailView: View {
                         .padding(.horizontal)
                         .frame(maxWidth: .infinity)
                     }
+                    .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 10)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 10)
+                    
                 } else {
                     // Portrait Layout
                     VStack(alignment: .leading, spacing: 16) {
@@ -178,6 +181,7 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
+                .padding(.horizontal, 40)
             }
         }
     }
