@@ -29,14 +29,16 @@ struct CryptoDetailView: View {
                         .padding(.horizontal)
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 16) {
-                        header
-                        chart
-                        overview
-                        stats
-                        Spacer()
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            header
+                            chart
+                            overview
+                            stats
+                            Spacer()
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
             }
             .onAppear {
@@ -58,6 +60,7 @@ struct CryptoDetailView: View {
             }
         }
         .navigationBarHidden(true)
+        .toolbar(.hidden, for: .tabBar) // Ensures tab bar is hidden
         .sheet(isPresented: $isFullOverviewPresented) {
             FullOverviewView(overview: viewModel.coinOverview)
         }
@@ -76,7 +79,7 @@ struct CryptoDetailView: View {
                     Image(systemName: "chevron.left")
                         .foregroundColor(.white)
                     Text("Back")
-                        .font(Font.custom("Poppins-Bold", size: 14))
+                        .font(Font.custom("Poppins-Bold", size: 24))
                         .foregroundColor(.white)
                 }
             }
@@ -169,7 +172,7 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
-                .padding(.horizontal, 40)
+                .padding(.horizontal, 40) // Adjusted padding for Volume
             }
         }
     }
@@ -245,7 +248,6 @@ struct FullOverviewView: View {
         }
     }
 
-    // Function to parse HTML and apply font size and custom link color
     private func parseHTMLToAttributedString(from html: String) -> AttributedString? {
         guard let data = html.data(using: .utf8) else { return nil }
 
@@ -257,15 +259,13 @@ struct FullOverviewView: View {
 
             let nsAttributedString = try NSMutableAttributedString(data: data, options: options, documentAttributes: nil)
 
-            // Apply explicit font and color styles
-            nsAttributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: nsAttributedString.length)) // Font size
-            nsAttributedString.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(location: 0, length: nsAttributedString.length)) // Default text color
+            nsAttributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: nsAttributedString.length))
+            nsAttributedString.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(location: 0, length: nsAttributedString.length))
 
-            // Apply custom blue color for links
-            let customBlue = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0) // Brighter, contrasting blue
+            let customBlue = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0)
             nsAttributedString.enumerateAttribute(.link, in: NSRange(location: 0, length: nsAttributedString.length), options: []) { value, range, _ in
                 if value != nil {
-                    nsAttributedString.addAttribute(.foregroundColor, value: customBlue, range: range) // Link color
+                    nsAttributedString.addAttribute(.foregroundColor, value: customBlue, range: range)
                 }
             }
 
@@ -276,33 +276,6 @@ struct FullOverviewView: View {
         }
     }
 }
-
-
-// Struct for parsed content
-private struct ParsedContent: Identifiable {
-    let id = UUID()
-    let text: String
-    let isLink: Bool
-    let url: URL?
-
-    init(text: String, isLink: Bool, url: URL? = nil) {
-        self.text = text
-        self.isLink = isLink
-        self.url = url
-    }
-}
-
-private extension NSRange {
-    func lowerBound(in string: String) -> String.Index {
-        return String.Index(utf16Offset: self.lowerBound, in: string)
-    }
-}
-
-
-
-
-
-
 
 struct StatRow: View {
     let title: String
@@ -322,11 +295,11 @@ struct StatRow: View {
                 Text("\(String(format: "%.2f", change))%")
                     .font(Font.custom("Poppins-Medium", size: 14))
                     .foregroundColor(change < 0 ? .red : .green)
-                    .font(.footnote)
             }
         }
     }
 }
+
 
 struct FullScreenChartView: View {
     let sparkline: [Double]
@@ -340,7 +313,7 @@ struct FullScreenChartView: View {
                     Spacer()
                     Button(action: { }) {
                         Text("Close")
-                            .font(Font.custom("Poppins-Medium", size: 24))
+                            .font(Font.custom("Poppins-Bold", size: 24))
                             .foregroundColor(.white)
                             .padding()
                     }
