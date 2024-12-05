@@ -24,8 +24,8 @@ struct PortfolioView: View {
     }
 
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
+        GeometryReader { geometry in
+            NavigationView {
                 ZStack {
                     LinearGradient(
                         gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
@@ -48,7 +48,9 @@ struct PortfolioView: View {
                                 }
                             }
                             .padding(.top, 10)
+                            .padding(.bottom, geometry.safeAreaInsets.bottom + 30) // Adjust for tab bar
                         }
+                        .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 30) // Dynamic height
                     } else {
                         VStack(spacing: 10) {
                             combinedHeaderAndTitle
@@ -213,6 +215,7 @@ struct PortfolioView: View {
         return String(format: "%.2f%%", weightedChange) // Return the weighted average as a percentage
     }
 }
+
 
 // MARK: - CoinRowViewPortfolio
 struct CoinRowViewPortfolio: View {
