@@ -191,6 +191,7 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
+               .padding(.horizontal, 40)
             }
         }
     }
