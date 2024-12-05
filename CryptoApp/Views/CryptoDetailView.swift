@@ -22,33 +22,44 @@ struct CryptoDetailView: View {
                 if isLandscape {
                     // Landscape Layout
                     ScrollView {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 8) { // Reduced vertical spacing
                             header
-                            HStack(alignment: .top, spacing: 16) {
+                                .padding(.bottom, 8)
+                            
+                            overview // Overview is vertically stacked below chart and stats
+                                .padding(.bottom, 3)
+
+                            HStack(alignment: .center, spacing: 12) { // Adjusted spacing between chart and stats
                                 chart
                                     .frame(maxWidth: geometry.size.width * 0.5) // Chart takes 50% of width
                                 stats
                                     .frame(maxWidth: geometry.size.width * 0.5) // Stats take the remaining 50%
                             }
-                            overview // Overview is vertically stacked below the chart and stats
-                                .padding(.top, 16)
+
+                            
                         }
                         .padding(.horizontal)
                         .frame(maxWidth: .infinity)
                     }
-                    .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 10)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + 10)
-                    
+                    .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 17)
+                    //.padding(.bottom, geometry.safeAreaInsets.bottom + 1)
                 } else {
                     // Portrait Layout
-                    VStack(alignment: .leading, spacing: 16) {
-                        header
-                        chart
-                        overview
-                        stats
-                        Spacer()
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) { // Reduced vertical spacing
+                            header
+                                .padding(.bottom, 8)
+
+                            chart
+                                .padding(.bottom, 8)
+
+                            overview
+                                .padding(.bottom, 8)
+
+                            stats
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
             }
             .onAppear {
@@ -131,7 +142,6 @@ struct CryptoDetailView: View {
                     .border(Color.gray.opacity(0.2), width: 1)
             }
             .frame(height: 250)
-            .padding(.horizontal)
         }
     }
 
@@ -155,8 +165,8 @@ struct CryptoDetailView: View {
     }
 
     private var stats: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) { // Reduced spacing between stats rows
+            HStack(spacing: 16) { // Adjusted spacing between stats columns
                 StatRow(
                     title: "Current Price",
                     value: "$\(String(format: "%.2f", viewModel.coin.current_price))",
@@ -169,7 +179,7 @@ struct CryptoDetailView: View {
                     change: viewModel.coin.marketCapChangePercentage24h
                 )
             }
-            HStack(spacing: 20) {
+            HStack(spacing: 16) {
                 StatRow(
                     title: "Rank",
                     value: "\(viewModel.coin.rank)",
@@ -181,7 +191,6 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
-                .padding(.horizontal, 40)
             }
         }
     }
@@ -198,6 +207,7 @@ struct CryptoDetailView: View {
         return 0...(count - 1)
     }
 }
+
 
 
 // MARK: - FullOverviewView
