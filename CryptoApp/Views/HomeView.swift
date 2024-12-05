@@ -49,58 +49,30 @@ struct HomeView: View {
                                 title
                                 stats
                                 searchBar
-                                HStack {
-                                    Text("Coins")
-                                        .font(Font.custom("Poppins-Bold", size: 18))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    Spacer()
-                                    Button(action: {
-                                        isPriceSortAscending.toggle()
-                                    }) {
-                                        HStack {
-                                            Text("Prices")
-                                                .font(Font.custom("Poppins-Bold", size: 18))
-                                                .foregroundColor(.white)
-                                            Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
-                                                .foregroundColor(.white)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                                }
-                                .padding(.horizontal)
+                                sortingHeader
 
-                                coinList
+                                // Show all coins in landscape mode
+                                ForEach(filteredCoins, id: \.id) { coin in
+                                    NavigationLink(
+                                        destination: CryptoDetailView(
+                                            viewModel: CryptoDetailViewModel(coin: coin)
+                                        )
+                                    ) {
+                                        CoinRowView(coin: coin)
+                                    }
+                                    .padding(.horizontal)
+                                }
                             }
                             .padding(.horizontal)
                         }
+                        .frame(height: UIScreen.main.bounds.height * 0.8) 
                     } else {
                         // Portrait Mode: Original Layout
                         VStack(spacing: 20) {
                             title
                             stats
                             searchBar
-                            HStack {
-                                Text("Coins")
-                                    .font(Font.custom("Poppins-Bold", size: 18))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Spacer()
-                                Button(action: {
-                                    isPriceSortAscending.toggle()
-                                }) {
-                                    HStack {
-                                        Text("Prices")
-                                            .font(Font.custom("Poppins-Bold", size: 18))
-                                            .foregroundColor(.white)
-                                        Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                            .padding(.horizontal)
-
+                            sortingHeader
                             coinList
                             Spacer()
                         }
@@ -194,6 +166,31 @@ struct HomeView: View {
         .padding(.horizontal, 6)
     }
 
+    private var sortingHeader: some View {
+        HStack {
+            Text("Coins")
+                .font(Font.custom("Poppins-Bold", size: 18))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+
+            Button(action: {
+                isPriceSortAscending.toggle()
+            }) {
+                HStack {
+                    Text("Prices")
+                        .font(Font.custom("Poppins-Bold", size: 18))
+                        .foregroundColor(.white)
+                    Image(systemName: isPriceSortAscending ? "arrow.down" : "arrow.up")
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal)
+    }
+
     private var coinList: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -222,19 +219,16 @@ struct HomeView: View {
 
         var body: some View {
             VStack(spacing: 8) {
-                // Title
                 Text(title)
                     .font(Font.custom("Poppins-Medium", size: 14))
                     .foregroundColor(.white)
 
-                // Value
                 Text(value)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
 
-                // Percentage Change (if provided)
                 if let percentageChange = percentageChange {
                     Text(percentageChange)
                         .font(.system(size: 14, weight: .bold))
@@ -251,7 +245,6 @@ struct HomeView: View {
 
         var body: some View {
             HStack {
-                // Coin Image
                 AsyncImage(url: URL(string: coin.image)) { image in
                     image
                         .resizable()
@@ -262,14 +255,12 @@ struct HomeView: View {
                         .frame(width: 30, height: 30)
                 }
 
-                // Coin Symbol
                 Text(coin.symbol.uppercased())
                     .foregroundColor(.white)
                     .font(Font.custom("Poppins-Bold", size: 16))
 
                 Spacer()
 
-                // Coin Price and Percentage Change
                 VStack(alignment: .trailing) {
                     Text("$\(coin.current_price, specifier: "%.2f")")
                         .font(Font.custom("Poppins-Bold", size: 16))
@@ -282,8 +273,6 @@ struct HomeView: View {
             .padding(.vertical, 8)
         }
     }
-
-    
 }
 
 #Preview {
