@@ -131,15 +131,36 @@ struct CryptoDetailView: View {
             Text("Overview")
                 .font(Font.custom("Poppins-Bold", size: 20))
                 .foregroundColor(.white)
-            Text(viewModel.coinOverview)
-                .font(Font.custom("Poppins-Medium", size: 16))
-                .foregroundColor(.white)
-                .lineLimit(isLandscape ? nil : 4)
-            if !isLandscape && viewModel.coinOverview.count > 200 {
-                Button(action: { isFullOverviewPresented.toggle() }) {
-                    Text("Read more...")
+
+            Group {
+                if isLandscape {
+                    Text(viewModel.coinOverview)
                         .font(Font.custom("Poppins-Medium", size: 16))
-                        .foregroundColor(.blue)
+                        .foregroundColor(.white)
+                        .lineLimit(3) // Show only 3 lines in landscape mode
+                        .multilineTextAlignment(.leading)
+
+                    if viewModel.coinOverview.count > 200 {
+                        Button(action: { isFullOverviewPresented.toggle() }) {
+                            Text("Read more...")
+                                .font(Font.custom("Poppins-Medium", size: 16))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                } else {
+                    Text(viewModel.coinOverview)
+                        .font(Font.custom("Poppins-Medium", size: 16))
+                        .foregroundColor(.white)
+                        .lineLimit(3) // Show only 3 lines in portrait mode
+                        .multilineTextAlignment(.leading)
+
+                    if viewModel.coinOverview.count > 200 {
+                        Button(action: { isFullOverviewPresented.toggle() }) {
+                            Text("Read more...")
+                                .font(Font.custom("Poppins-Medium", size: 16))
+                                .foregroundColor(.blue)
+                        }
+                    }
                 }
             }
         }
