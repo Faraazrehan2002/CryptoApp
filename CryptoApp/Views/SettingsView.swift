@@ -17,16 +17,16 @@ struct SettingsView: View {
                 )
                 .ignoresSafeArea()
 
-                VStack(spacing: 0) {
+                VStack(spacing: 10) {
                     // Headline
                     Text("About")
                         .font(Font.custom("Poppins-Bold", size: 32))
                         .foregroundColor(.white)
-                        .padding(.top, 5)
+                        .padding(.top, 10)
 
                     // Content in ScrollView
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
+                        Group {
                             if isLandscape {
                                 // Landscape Layout
                                 HStack(alignment: .top, spacing: 20) {
@@ -53,20 +53,9 @@ struct SettingsView: View {
             }
             .onAppear {
                 updateOrientation(with: geometry.size)
-                NotificationCenter.default.addObserver(
-                    forName: UIDevice.orientationDidChangeNotification,
-                    object: nil,
-                    queue: .main
-                ) { _ in
-                    updateOrientation(with: geometry.size)
-                }
             }
-            .onDisappear {
-                NotificationCenter.default.removeObserver(
-                    self,
-                    name: UIDevice.orientationDidChangeNotification,
-                    object: nil
-                )
+            .onChange(of: geometry.size) { newSize in
+                updateOrientation(with: newSize)
             }
         }
         .tabItem {
@@ -76,10 +65,12 @@ struct SettingsView: View {
     }
 
     private func updateOrientation(with size: CGSize) {
-        isLandscape = size.width > size.height
+        DispatchQueue.main.async {
+            isLandscape = size.width > size.height
+        }
     }
 
-    // App Details Section
+    // MARK: - App Details Section
     private var appDetails: some View {
         VStack(alignment: .leading, spacing: 20) {
             Image("Settings Icon")
@@ -102,7 +93,7 @@ struct SettingsView: View {
         }
     }
 
-    // About Us Section
+    // MARK: - About Us Section
     private var aboutUs: some View {
         VStack(alignment: .leading, spacing: 20) {
             Image("Users Icon")
@@ -154,4 +145,3 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
 }
-

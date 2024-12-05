@@ -26,7 +26,7 @@ struct ContentView: View {
                     Text("Portfolio")
                 }
             
-            CryptoNewsView()
+            NewsSplashScreenView()
                 .tabItem {
                     Image(systemName: "newspaper")
                     Text("News")
