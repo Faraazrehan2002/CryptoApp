@@ -14,7 +14,7 @@ struct CryptoAppApp: App {
     }
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SplashScreenView()
         }
     }
     private func setupTabBarAppearance() {
