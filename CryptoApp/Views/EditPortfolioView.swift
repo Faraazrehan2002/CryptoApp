@@ -20,53 +20,62 @@ struct EditPortfolioView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                header
-                title
-                searchBar
-                coinScrollView
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 20) {
+                    header
+                    title
+                    searchBar
 
-                if let selectedCoin = selectedCoin {
-                    coinDetails
+                    // Coin Selection and Details
+                    LazyVStack(spacing: 20) {
+                        coinScrollView
+
+                        if let selectedCoin = selectedCoin {
+                            coinDetails
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+            }
+            .frame(maxHeight: geometry.size.height) // Ensure ScrollView height matches the screen
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(hex: "#851439"),
+                        Color(hex: "#151E52")
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            )
+            .navigationBarBackButtonHidden(true)
+            .toolbar(.hidden, for: .tabBar)
+            .onAppear {
+                updateOrientation(with: geometry.size)
+                NotificationCenter.default.addObserver(
+                    forName: UIDevice.orientationDidChangeNotification,
+                    object: nil,
+                    queue: .main
+                ) { _ in
+                    updateOrientation(with: geometry.size)
                 }
             }
-            .padding()
-            .frame(maxWidth: .infinity)
-        }
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(hex: "#851439"),
-                    Color(hex: "#151E52")
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
-        .navigationBarBackButtonHidden(true)
-        .onAppear {
-            updateOrientation()
-            NotificationCenter.default.addObserver(
-                forName: UIDevice.orientationDidChangeNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                updateOrientation()
+            .onDisappear {
+                NotificationCenter.default.removeObserver(
+                    self,
+                    name: UIDevice.orientationDidChangeNotification,
+                    object: nil
+                )
             }
-        }
-        .onDisappear {
-            NotificationCenter.default.removeObserver(
-                self,
-                name: UIDevice.orientationDidChangeNotification,
-                object: nil
-            )
         }
     }
 
-    private func updateOrientation() {
-        isLandscape = UIDevice.current.orientation.isLandscape
+    private func updateOrientation(with size: CGSize) {
+        isLandscape = size.width > size.height
     }
 
     // Header with Back and Done buttons
@@ -106,7 +115,7 @@ struct EditPortfolioView: View {
         Text("Edit Portfolio")
             .font(Font.custom("Poppins-Bold", size: 32))
             .foregroundColor(.white)
-            .padding(.top, isLandscape ? 0 : 10) // Adjust padding for portrait/landscape
+            .padding(.top, isLandscape ? 0 : 10)
     }
 
     // Search Bar
@@ -170,7 +179,6 @@ struct EditPortfolioView: View {
                     .onTapGesture {
                         withAnimation(.easeIn) {
                             selectedCoin = coin
-                            // Set the text to be empty instead of showing 0.0
                             quantityText = coin.currentHoldings == nil ? "" : "\(coin.currentHoldings!)"
                         }
                     }
@@ -213,8 +221,8 @@ struct EditPortfolioView: View {
                 Spacer()
                 ZStack(alignment: .trailing) {
                     if quantityText.isEmpty {
-                        Text("Enter amount") // Adjusted placeholder text
-                            .foregroundColor(Color.white.opacity(0.6)) // Contrasting color for visibility
+                        Text("Enter amount")
+                            .foregroundColor(Color.white.opacity(0.6))
                             .font(Font.custom("Poppins-Medium", size: 16))
                             .padding(.trailing, 10)
                     }
@@ -226,15 +234,9 @@ struct EditPortfolioView: View {
                         .background(Color.white.opacity(0.2))
                         .cornerRadius(10)
                         .keyboardType(.decimalPad)
-                        .onTapGesture {
-                            if quantityText == "0.0" { // Clear placeholder when tapped
-                                quantityText = ""
-                            }
-                        }
                 }
             }
             .padding()
-
 
             Divider()
                 .background(Color.white)
@@ -260,6 +262,7 @@ struct EditPortfolioView: View {
         return 0
     }
 }
+
 
 #Preview {
     EditPortfolioView(viewModel: CryptoViewModel())
