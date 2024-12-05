@@ -11,6 +11,7 @@ struct CryptoDetailView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Background Gradient
                 LinearGradient(
                     gradient: Gradient(colors: [Color(hex: "#851439"), Color(hex: "#151E52")]),
                     startPoint: .topLeading,
@@ -19,6 +20,7 @@ struct CryptoDetailView: View {
                 .ignoresSafeArea()
 
                 if isLandscape {
+                    // Scrollable Content in Landscape Mode
                     ScrollView {
                         VStack(spacing: 16) {
                             header
@@ -27,18 +29,20 @@ struct CryptoDetailView: View {
                             overview
                         }
                         .padding(.horizontal)
+                        .frame(maxWidth: .infinity)
                     }
+                    .frame(height: geometry.size.height - geometry.safeAreaInsets.bottom - 30) // Adjusted scrollable area height
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 30) // Keep above TabView
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            header
-                            chart
-                            overview
-                            stats
-                            Spacer()
-                        }
-                        .padding(.horizontal)
+                    // Portrait Mode
+                    VStack(alignment: .leading, spacing: 16) {
+                        header
+                        chart
+                        overview
+                        stats
+                        Spacer()
                     }
+                    .padding(.horizontal)
                 }
             }
             .onAppear {
@@ -60,7 +64,6 @@ struct CryptoDetailView: View {
             }
         }
         .navigationBarHidden(true)
-        .toolbar(.hidden, for: .tabBar) // Ensures tab bar is hidden
         .sheet(isPresented: $isFullOverviewPresented) {
             FullOverviewView(overview: viewModel.coinOverview)
         }
@@ -131,36 +134,15 @@ struct CryptoDetailView: View {
             Text("Overview")
                 .font(Font.custom("Poppins-Bold", size: 20))
                 .foregroundColor(.white)
-
-            Group {
-                if isLandscape {
-                    Text(viewModel.coinOverview)
+            Text(viewModel.coinOverview)
+                .font(Font.custom("Poppins-Medium", size: 16))
+                .foregroundColor(.white)
+                .lineLimit(isLandscape ? nil : 4)
+            if !isLandscape && viewModel.coinOverview.count > 200 {
+                Button(action: { isFullOverviewPresented.toggle() }) {
+                    Text("Read more...")
                         .font(Font.custom("Poppins-Medium", size: 16))
-                        .foregroundColor(.white)
-                        .lineLimit(3) // Show only 3 lines in landscape mode
-                        .multilineTextAlignment(.leading)
-
-                    if viewModel.coinOverview.count > 200 {
-                        Button(action: { isFullOverviewPresented.toggle() }) {
-                            Text("Read more...")
-                                .font(Font.custom("Poppins-Medium", size: 16))
-                                .foregroundColor(.blue)
-                        }
-                    }
-                } else {
-                    Text(viewModel.coinOverview)
-                        .font(Font.custom("Poppins-Medium", size: 16))
-                        .foregroundColor(.white)
-                        .lineLimit(3) // Show only 3 lines in portrait mode
-                        .multilineTextAlignment(.leading)
-
-                    if viewModel.coinOverview.count > 200 {
-                        Button(action: { isFullOverviewPresented.toggle() }) {
-                            Text("Read more...")
-                                .font(Font.custom("Poppins-Medium", size: 16))
-                                .foregroundColor(.blue)
-                        }
-                    }
+                        .foregroundColor(.blue)
                 }
             }
         }
@@ -193,7 +175,7 @@ struct CryptoDetailView: View {
                     value: "$\(String(format: "%.2fBn", viewModel.coin.total_volume / 1_000_000_000))",
                     change: nil
                 )
-                .padding(.horizontal, 40) // Adjusted padding for Volume
+                .padding(.horizontal, 40)
             }
         }
     }
@@ -210,6 +192,9 @@ struct CryptoDetailView: View {
         return 0...(count - 1)
     }
 }
+
+
+
 
 // MARK: - FullOverviewView
 
@@ -269,6 +254,7 @@ struct FullOverviewView: View {
         }
     }
 
+    // Function to parse HTML and apply font size and custom link color
     private func parseHTMLToAttributedString(from html: String) -> AttributedString? {
         guard let data = html.data(using: .utf8) else { return nil }
 
@@ -280,13 +266,15 @@ struct FullOverviewView: View {
 
             let nsAttributedString = try NSMutableAttributedString(data: data, options: options, documentAttributes: nil)
 
-            nsAttributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: nsAttributedString.length))
-            nsAttributedString.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(location: 0, length: nsAttributedString.length))
+            // Apply explicit font and color styles
+            nsAttributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16), range: NSRange(location: 0, length: nsAttributedString.length)) // Font size
+            nsAttributedString.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(location: 0, length: nsAttributedString.length)) // Default text color
 
-            let customBlue = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0)
+            // Apply custom blue color for links
+            let customBlue = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0) // Brighter, contrasting blue
             nsAttributedString.enumerateAttribute(.link, in: NSRange(location: 0, length: nsAttributedString.length), options: []) { value, range, _ in
                 if value != nil {
-                    nsAttributedString.addAttribute(.foregroundColor, value: customBlue, range: range)
+                    nsAttributedString.addAttribute(.foregroundColor, value: customBlue, range: range) // Link color
                 }
             }
 
@@ -297,6 +285,33 @@ struct FullOverviewView: View {
         }
     }
 }
+
+
+// Struct for parsed content
+private struct ParsedContent: Identifiable {
+    let id = UUID()
+    let text: String
+    let isLink: Bool
+    let url: URL?
+
+    init(text: String, isLink: Bool, url: URL? = nil) {
+        self.text = text
+        self.isLink = isLink
+        self.url = url
+    }
+}
+
+private extension NSRange {
+    func lowerBound(in string: String) -> String.Index {
+        return String.Index(utf16Offset: self.lowerBound, in: string)
+    }
+}
+
+
+
+
+
+
 
 struct StatRow: View {
     let title: String
@@ -316,11 +331,11 @@ struct StatRow: View {
                 Text("\(String(format: "%.2f", change))%")
                     .font(Font.custom("Poppins-Medium", size: 14))
                     .foregroundColor(change < 0 ? .red : .green)
+                    .font(.footnote)
             }
         }
     }
 }
-
 
 struct FullScreenChartView: View {
     let sparkline: [Double]
@@ -334,7 +349,7 @@ struct FullScreenChartView: View {
                     Spacer()
                     Button(action: { }) {
                         Text("Close")
-                            .font(Font.custom("Poppins-Bold", size: 24))
+                            .font(Font.custom("Poppins-Medium", size: 24))
                             .foregroundColor(.white)
                             .padding()
                     }
